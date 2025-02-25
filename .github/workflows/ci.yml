@@ -24,6 +24,9 @@ jobs:
   docker-build-and-push:
     needs: [build-and-test]
     runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
     steps:
       - name: Set tags
         id: set_tags
