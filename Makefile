@@ -1,6 +1,8 @@
 #!/usr/bin/make -f
 
-DOCKER_COMPOSE = docker compose
+DOCKER_COMPOSE_DEV = docker compose
+DOCKER_COMPOSE_CI = docker compose -f docker-compose.yml
+DOCKER_COMPOSE = $(DOCKER_COMPOSE_DEV)
 
 VENV = venv
 PIP = $(VENV)/bin/pip
@@ -58,8 +60,30 @@ dev-start:
 build:
 	$(DOCKER_COMPOSE) build
 
+flake8:
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m flake8 data_ai_bot
+
+pylint:
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m pylint data_ai_bot
+
+mypy:
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m mypy --check-untyped-defs data_ai_bot
+
+lint: flake8 pylint mypy
+
+
 start:
 	$(DOCKER_COMPOSE) up -d
 
 logs:
 	$(DOCKER_COMPOSE) logs -f
+
+
+ci-build:
+	$(MAKE) DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" build
+
+ci-lint:
+	$(MAKE) DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" lint

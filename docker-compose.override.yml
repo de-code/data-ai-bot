@@ -1,0 +1,9 @@
+services:
+    data-ai-bot:
+        environment:
+          - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+          - SLACK_SIGNING_SECRET=${SLACK_SIGNING_SECRET}
+          - SLACK_APP_TOKEN=${SLACK_APP_TOKEN}
+          - OPENAI_API_KEY=${OPENAI_API_KEY}
+          - OPENAI_BASE_URL=${OPENAI_BASE_URL}
+          - OPENAI_MODEL_ID=${OPENAI_MODEL_ID}
