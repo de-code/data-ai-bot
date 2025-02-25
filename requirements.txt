@@ -1,0 +1,4 @@
+requests==2.32.3
+slack-bolt==1.22.0
+slack-sdk==3.34.0
+smolagents[openai]==1.9.2
