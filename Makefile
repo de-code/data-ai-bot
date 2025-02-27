@@ -8,6 +8,7 @@ VENV = venv
 PIP = $(VENV)/bin/pip
 PYTHON = $(VENV)/bin/python
 
+PYTEST_WATCH_MODULES = tests/unit_tests
 
 .require-%:
 	@ if [ "${${*}}" = "" ]; then \
@@ -53,6 +54,19 @@ dev-mypy:
 dev-lint: dev-flake8 dev-pylint dev-mypy
 
 
+dev-unit-tests:
+	$(PYTHON) -m pytest
+
+dev-watch:
+	$(PYTHON) -m pytest_watcher \
+		--runner=$(VENV)/bin/python \
+		. \
+		-m pytest -vv $(PYTEST_WATCH_MODULES)
+
+
+dev-test: dev-lint dev-unit-tests
+
+
 dev-start:
 	$(PYTHON) -m data_ai_bot
 
@@ -75,6 +89,14 @@ mypy:
 lint: flake8 pylint mypy
 
 
+unit-tests:
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m pytest
+
+
+test: lint unit-tests
+
+
 start:
 	$(DOCKER_COMPOSE) up -d
 
@@ -87,3 +109,7 @@ ci-build:
 
 ci-lint:
 	$(MAKE) DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" lint
+
+
+ci-unit-tests:
+	$(MAKE) DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" unit-tests

@@ -20,6 +20,8 @@ jobs:
         run: make ci-build
       - name: Linting
         run: make ci-lint
+      - name: Unit Tests
+        run: make ci-unit-tests
 
   docker-build-and-push:
     needs: [build-and-test]
