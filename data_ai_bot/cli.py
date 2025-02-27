@@ -3,12 +3,12 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Set
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt.context.say import Say
 
+from cachetools import TTLCache  # type: ignore
 import smolagents  # type: ignore
 
 from data_ai_bot.slack import (
@@ -125,7 +125,7 @@ def create_bolt_app(
         echo_message=echo_message
     )
 
-    previous_messages: Set[str] = set()
+    previous_messages: dict[str, bool] = TTLCache(maxsize=1000, ttl=600)
 
     @app.event('message')
     def message(event: dict, say: Say):
@@ -141,7 +141,7 @@ def create_bolt_app(
         if ts in previous_messages:
             LOGGER.info('Ignoring already processed message: %r', ts)
             return
-        previous_messages.add(ts)
+        previous_messages[ts] = True
         chat_app.handle_message(event=event, say=say)
 
     return app
