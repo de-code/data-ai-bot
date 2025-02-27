@@ -1,15 +1,18 @@
-from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Sequence, cast
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt.context.say import Say
 
 import smolagents  # type: ignore
+
+from data_ai_bot.slack import (
+    SlackMessageEvent,
+    get_slack_message_event_from_event_dict
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -55,38 +58,6 @@ def get_agent(
 
 def get_system_prompt() -> str:
     return Path('data/system-prompt.txt').read_text(encoding='utf-8')
-
-
-@dataclass(frozen=True)
-class SlackMessageEvent:
-    user: str
-    text: str
-    thread_ts: str
-    channel: str
-    channel_type: str
-    previous_messages: Sequence[str]
-
-
-def get_slack_message_event_from_event_dict(
-    app: slack_bolt.App,
-    event: dict
-) -> SlackMessageEvent:
-    result = app.client.conversations_replies(
-        channel=event['channel'],
-        ts=event['thread_ts']
-    )
-    return SlackMessageEvent(
-        user=event['user'],
-        text=event['text'],
-        thread_ts=event['ts'],
-        channel=event['channel'],
-        channel_type=event['channel_type'],
-        previous_messages=[
-            message['text']
-            for message in cast(Sequence[dict], result.get('messages', []))
-            if message['ts'] != event['ts']
-        ]
-    )
 
 
 def get_agent_message(
