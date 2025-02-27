@@ -1,7 +1,7 @@
 
 
 from dataclasses import dataclass
-from typing import Sequence, cast
+from typing import Optional, Sequence, cast
 
 import slack_bolt
 
@@ -12,8 +12,8 @@ class SlackMessageEvent:
     text: str
     thread_ts: str
     channel: str
-    channel_type: str
     previous_messages: Sequence[str]
+    channel_type: Optional[str] = None
 
 
 def get_slack_message_event_from_event_dict(
@@ -33,7 +33,7 @@ def get_slack_message_event_from_event_dict(
         text=event['text'],
         thread_ts=thread_ts or event['ts'],
         channel=event['channel'],
-        channel_type=event['channel_type'],
+        channel_type=event.get('channel_type'),
         previous_messages=[
             message['text']
             for message in previous_message_dict_list

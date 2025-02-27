@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import logging
 import os
 from pathlib import Path
@@ -7,6 +8,7 @@ import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt.context.say import Say
 
+from cachetools import TTLCache  # type: ignore
 import smolagents  # type: ignore
 
 from data_ai_bot.slack import (
@@ -72,6 +74,41 @@ def get_agent_message(
     return prompt
 
 
+@dataclass(frozen=True)
+class SlackChatApp:
+    agent: smolagents.MultiStepAgent
+    system_prompt: str
+    slack_app: slack_bolt.App
+    echo_message: bool = False
+
+    def handle_message(self, event: dict, say: Say):
+        try:
+            message_event = get_slack_message_event_from_event_dict(
+                app=self.slack_app,
+                event=event
+            )
+            LOGGER.info('message_event: %r', message_event)
+
+            if self.echo_message:
+                say(
+                    f'Hi <@{message_event.user}>! You said: {message_event.text}',
+                    thread_ts=message_event.thread_ts
+                )
+            response_message = self.agent.run(
+                get_agent_message(
+                    system_prompt=self.system_prompt,
+                    message_event=message_event
+                )
+            )
+            say(response_message, thread_ts=message_event.thread_ts)
+        except Exception as exc:  # pylint: disable=broad-exception-caught
+            LOGGER.warning('Caught exception: %r', exc, exc_info=True)
+            say(
+                f'Failed to process request due to:\n> {repr(exc)}',
+                thread_ts=event.get('ts')
+            )
+
+
 def create_bolt_app(
     agent: smolagents.MultiStepAgent,
     system_prompt: str,
@@ -81,34 +118,31 @@ def create_bolt_app(
         token=get_required_env('SLACK_BOT_TOKEN'),
         signing_secret=get_required_env('SLACK_SIGNING_SECRET')
     )
+    chat_app = SlackChatApp(
+        agent=agent,
+        system_prompt=system_prompt,
+        slack_app=app,
+        echo_message=echo_message
+    )
+
+    previous_messages: dict[str, bool] = TTLCache(maxsize=1000, ttl=600)
 
     @app.event('message')
     def message(event: dict, say: Say):
         LOGGER.info('event: %r', event)
         if event.get('channel_type') == 'im':
-            message_event = get_slack_message_event_from_event_dict(app=app, event=event)
-            LOGGER.info('message_event: %r', message_event)
+            chat_app.handle_message(event=event, say=say)
 
-            if echo_message:
-                say(
-                    f'Hi <@{message_event.user}>! You said: {message_event.text}',
-                    thread_ts=message_event.thread_ts
-                )
-
-            try:
-                response_message = agent.run(
-                    get_agent_message(
-                        system_prompt=system_prompt,
-                        message_event=message_event
-                    )
-                )
-                say(response_message, thread_ts=message_event.thread_ts)
-            except Exception as exc:  # pylint: disable=broad-exception-caught
-                LOGGER.warning('Caught exception: %r', exc, exc_info=True)
-                say(
-                    f'Failed to process request due to:\n> {repr(exc)}',
-                    thread_ts=message_event.thread_ts
-                )
+    @app.event('app_mention')
+    def handle_app_mention(event: dict, say: Say, ack: slack_bolt.Ack):
+        LOGGER.info('event: %r', event)
+        ack()
+        ts = event['ts']
+        if ts in previous_messages:
+            LOGGER.info('Ignoring already processed message: %r', ts)
+            return
+        previous_messages[ts] = True
+        chat_app.handle_message(event=event, say=say)
 
     return app
 
