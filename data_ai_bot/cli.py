@@ -3,6 +3,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
+from typing import Set
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -124,6 +125,8 @@ def create_bolt_app(
         echo_message=echo_message
     )
 
+    previous_messages: Set[str] = set()
+
     @app.event('message')
     def message(event: dict, say: Say):
         LOGGER.info('event: %r', event)
@@ -134,6 +137,11 @@ def create_bolt_app(
     def handle_app_mention(event: dict, say: Say, ack: slack_bolt.Ack):
         LOGGER.info('event: %r', event)
         ack()
+        ts = event['ts']
+        if ts in previous_messages:
+            LOGGER.info('Ignoring already processed message: %r', ts)
+            return
+        previous_messages.add(ts)
         chat_app.handle_message(event=event, say=say)
 
     return app
