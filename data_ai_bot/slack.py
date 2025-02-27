@@ -1,6 +1,7 @@
 
 
 from dataclasses import dataclass
+import time
 from typing import Optional, Sequence, cast
 
 import slack_bolt
@@ -40,3 +41,9 @@ def get_slack_message_event_from_event_dict(
             if message['ts'] != event['ts']
         ]
     )
+
+
+def get_message_age_in_seconds_from_event_dict(
+    event: dict
+) -> float:
+    return time.time() - float(event['ts'])

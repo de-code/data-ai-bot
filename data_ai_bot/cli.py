@@ -13,6 +13,7 @@ import smolagents  # type: ignore
 
 from data_ai_bot.slack import (
     SlackMessageEvent,
+    get_message_age_in_seconds_from_event_dict,
     get_slack_message_event_from_event_dict
 )
 
@@ -112,6 +113,7 @@ class SlackChatApp:
 def create_bolt_app(
     agent: smolagents.MultiStepAgent,
     system_prompt: str,
+    max_message_age_in_seconds: int = 600,
     echo_message: bool = False
 ):
     app = slack_bolt.App(
@@ -140,6 +142,10 @@ def create_bolt_app(
         ts = event['ts']
         if ts in previous_messages:
             LOGGER.info('Ignoring already processed message: %r', ts)
+            return
+        message_age_in_seconds = get_message_age_in_seconds_from_event_dict(event)
+        if message_age_in_seconds > max_message_age_in_seconds:
+            LOGGER.info('Ignoring old message: %r', message_age_in_seconds)
             return
         previous_messages[ts] = True
         chat_app.handle_message(event=event, say=say)
