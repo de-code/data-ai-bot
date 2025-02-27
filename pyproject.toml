@@ -1,0 +1,11 @@
+[tool.pytest-watcher]
+now = true
+clear = false
+delay = 0.2
+runner = "venv/bin/python"
+runner_args = ["-m", "pytest"]
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests"
+]
