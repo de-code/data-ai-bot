@@ -136,8 +136,15 @@ def create_bolt_app(
             chat_app.handle_message(event=event, say=say)
 
     @app.event('app_mention')
-    def handle_app_mention(event: dict, say: Say, ack: slack_bolt.Ack):
-        LOGGER.info('event: %r', event)
+    def handle_app_mention(
+        event: dict,
+        say: Say,
+        ack: slack_bolt.Ack,
+        request: slack_bolt.BoltRequest
+    ):
+        retry_count = request.headers.get('x-slack-retry-num')
+        retry_reason = request.headers.get('x-slack-retry-reason')
+        LOGGER.info('event: %r (retry: %s, reason: %r)', event, retry_count, retry_reason)
         ack()
         ts = event['ts']
         if ts in previous_messages:
