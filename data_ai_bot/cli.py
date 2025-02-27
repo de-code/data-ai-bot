@@ -136,14 +136,24 @@ def create_bolt_app(
             chat_app.handle_message(event=event, say=say)
 
     @app.event('app_mention')
-    def handle_app_mention(event: dict, say: Say, ack: slack_bolt.Ack):
-        LOGGER.info('event: %r', event)
+    def handle_app_mention(
+        event: dict,
+        say: Say,
+        ack: slack_bolt.Ack,
+        request: slack_bolt.BoltRequest
+    ):
+        retry_count = request.headers.get('x-slack-retry-num')
+        retry_reason = request.headers.get('x-slack-retry-reason')
+        message_age_in_seconds = get_message_age_in_seconds_from_event_dict(event)
+        LOGGER.info(
+            'event: %r (retry: %s, reason: %r, age: %.3fs)',
+            event, retry_count, retry_reason, message_age_in_seconds
+        )
         ack()
         ts = event['ts']
         if ts in previous_messages:
             LOGGER.info('Ignoring already processed message: %r', ts)
             return
-        message_age_in_seconds = get_message_age_in_seconds_from_event_dict(event)
         if message_age_in_seconds > max_message_age_in_seconds:
             LOGGER.info('Ignoring old message: %r', message_age_in_seconds)
             return
