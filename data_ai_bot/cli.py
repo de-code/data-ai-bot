@@ -90,6 +90,12 @@ class SlackChatApp:
             )
             LOGGER.info('message_event: %r', message_event)
 
+            self.slack_app.client.assistant_threads_setStatus(
+                channel_id=message_event.channel,
+                thread_ts=message_event.thread_ts,
+                status=f'Processing request: {message_event.text}'
+            )
+
             if self.echo_message:
                 say(
                     f'Hi <@{message_event.user}>! You said: {message_event.text}',
