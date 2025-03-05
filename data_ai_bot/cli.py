@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Optional
+from typing import Mapping, Optional
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -18,6 +18,7 @@ from data_ai_bot.slack import (
     get_slack_message_event_from_event_dict
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
+from data_ai_bot.tools.data_hub.docmap import DocMapTool
 from data_ai_bot.tools.example.joke import get_joke
 
 
@@ -56,10 +57,11 @@ def do_step_callback(step_log: smolagents.ActionStep):
 
 
 def get_agent(
-    model: smolagents.Model
+    model: smolagents.Model,
+    headers: Mapping[str, str]
 ) -> smolagents.MultiStepAgent:
     return smolagents.ToolCallingAgent(
-        tools=[get_joke],
+        tools=[get_joke, DocMapTool(headers=headers)],
         model=model,
         step_callbacks=[do_step_callback],
         max_steps=3
@@ -184,7 +186,10 @@ def main():
         api_base=get_required_env('OPENAI_BASE_URL'),
         api_key=get_required_env('OPENAI_API_KEY')
     )
-    agent = get_agent(model=model)
+    headers = {
+        'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI--Bot/1.0'
+    }
+    agent = get_agent(model=model, headers=headers)
     app = create_bolt_app(
         agent=agent,
         system_prompt=get_system_prompt()
