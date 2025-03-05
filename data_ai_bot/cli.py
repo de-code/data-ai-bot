@@ -3,6 +3,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
+from typing import Optional
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -16,9 +17,14 @@ from data_ai_bot.slack import (
     get_message_age_in_seconds_from_event_dict,
     get_slack_message_event_from_event_dict
 )
+from data_ai_bot.telemetry import configure_otlp_if_enabled
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+def get_optional_env(key: str) -> Optional[str]:
+    return os.getenv(key)
 
 
 def get_required_env(key: str) -> str:
@@ -171,6 +177,7 @@ def create_bolt_app(
 
 def main():
     LOGGER.info('Initializing...')
+    configure_otlp_if_enabled(get_optional_env('OTLP_ENDPOINT'))
     model = get_model(
         model_id=get_required_env('OPENAI_MODEL_ID'),
         api_base=get_required_env('OPENAI_BASE_URL'),
