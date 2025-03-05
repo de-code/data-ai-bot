@@ -18,6 +18,7 @@ from data_ai_bot.slack import (
     get_slack_message_event_from_event_dict
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
+from data_ai_bot.tools.example.joke import get_joke
 
 
 LOGGER = logging.getLogger(__name__)
@@ -58,7 +59,7 @@ def get_agent(
     model: smolagents.Model
 ) -> smolagents.MultiStepAgent:
     return smolagents.ToolCallingAgent(
-        tools=[],
+        tools=[get_joke],
         model=model,
         step_callbacks=[do_step_callback],
         max_steps=3
