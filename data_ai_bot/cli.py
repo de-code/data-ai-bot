@@ -206,7 +206,7 @@ def main():
         api_key=get_required_env('OPENAI_API_KEY')
     )
     headers = {
-        'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI--Bot/1.0'
+        'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
     }
     agent = get_agent(model=model, headers=headers)
     app = create_bolt_app(
