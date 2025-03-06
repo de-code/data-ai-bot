@@ -4,6 +4,8 @@ from dataclasses import dataclass
 import time
 from typing import Optional, Sequence, cast
 
+from markdown_to_mrkdwn import SlackMarkdownConverter  # type: ignore
+
 import slack_bolt
 
 
@@ -11,6 +13,7 @@ import slack_bolt
 class SlackMessageEvent:
     user: str
     text: str
+    ts: str
     thread_ts: str
     channel: str
     previous_messages: Sequence[str]
@@ -32,6 +35,7 @@ def get_slack_message_event_from_event_dict(
     return SlackMessageEvent(
         user=event['user'],
         text=event['text'],
+        ts=event['ts'],
         thread_ts=thread_ts or event['ts'],
         channel=event['channel'],
         channel_type=event.get('channel_type'),
@@ -47,3 +51,7 @@ def get_message_age_in_seconds_from_event_dict(
     event: dict
 ) -> float:
     return time.time() - float(event['ts'])
+
+
+def get_slack_mrkdwn_for_markdown(markdown: str) -> str:
+    return SlackMarkdownConverter().convert(markdown)

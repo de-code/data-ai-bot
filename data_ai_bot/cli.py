@@ -15,7 +15,8 @@ import smolagents  # type: ignore
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_message_age_in_seconds_from_event_dict,
-    get_slack_message_event_from_event_dict
+    get_slack_message_event_from_event_dict,
+    get_slack_mrkdwn_for_markdown
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
 from data_ai_bot.tools.data_hub.docmap import DocMapTool
@@ -116,7 +117,25 @@ class SlackChatApp:
                     message_event=message_event
                 )
             )
-            say(response_message, thread_ts=message_event.thread_ts)
+            LOGGER.info('response_message: %r', response_message)
+            response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
+                response_message
+            )
+            LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
+            LOGGER.info('responded to event: %r', event)
+            self.slack_app.client.chat_postMessage(
+                text=response_message,
+                mrkdwn=True,
+                blocks=[{
+                    'type': 'section',
+                    'text': {
+                        'type': 'mrkdwn',
+                        'text': response_message_mrkdwn
+                    }
+                }],
+                channel=message_event.channel,
+                thread_ts=message_event.thread_ts
+            )
         except Exception as exc:  # pylint: disable=broad-exception-caught
             LOGGER.warning('Caught exception: %r', exc, exc_info=True)
             say(

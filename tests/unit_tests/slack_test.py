@@ -2,7 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from data_ai_bot.slack import SlackMessageEvent, get_slack_message_event_from_event_dict
+from data_ai_bot.slack import (
+    SlackMessageEvent,
+    get_slack_message_event_from_event_dict,
+    get_slack_mrkdwn_for_markdown
+)
 
 
 MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1 = {
@@ -42,6 +46,7 @@ class TestGetSlackMessageEventFromEventDict:
         assert message_event == SlackMessageEvent(
             user=MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1['user'],
             text=MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1['text'],
+            ts=MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1['ts'],
             thread_ts=MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1['ts'],
             channel=MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1['channel'],
             channel_type=None,
@@ -84,3 +89,17 @@ class TestGetSlackMessageEventFromEventDict:
             ts='thread_ts_1'
         )
         assert message_event.previous_messages == ['previous_text_1']
+
+
+class TestGetSlackMrkdwnForMarkdown:
+    def test_should_not_convert_simple_text(self):
+        assert get_slack_mrkdwn_for_markdown('Simple text') == 'Simple text'
+
+    def test_should_convert_heading_1_to_slack_bold(self):
+        assert get_slack_mrkdwn_for_markdown('# Heading 1') == '*Heading 1*'
+
+    def test_should_convert_double_asterisk_to_slack_bold(self):
+        assert get_slack_mrkdwn_for_markdown('**bold**') == '*bold*'
+
+    def test_should_convert_markdown_link_to_slack_link(self):
+        assert get_slack_mrkdwn_for_markdown('[Link Text](Link URL)') == '<Link URL|Link Text>'
