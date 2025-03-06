@@ -1,7 +1,7 @@
 cachetools==5.5.2
 markdown-to-mrkdwn==0.1.4
-opentelemetry-exporter-otlp==1.29.0
-opentelemetry-sdk==1.29.0
+opentelemetry-exporter-otlp==1.30.0
+opentelemetry-sdk==1.30.0
 openinference-instrumentation-smolagents==0.1.6
 requests==2.32.3
 slack-bolt==1.22.0
