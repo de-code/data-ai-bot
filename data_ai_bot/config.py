@@ -46,7 +46,7 @@ def get_app_config_file() -> str:
 
 def load_app_config_from_file(config_file: str) -> AppConfig:
     LOGGER.info('Loading config from: %r', config_file)
-    with open(config_file, 'r') as config_fp:
+    with open(config_file, 'r', encoding='utf-8') as config_fp:
         return AppConfig.from_dict(
             yaml.safe_load(config_fp)
         )
