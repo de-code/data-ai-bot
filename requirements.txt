@@ -3,6 +3,7 @@ markdown-to-mrkdwn==0.1.4
 opentelemetry-exporter-otlp==1.30.0
 opentelemetry-sdk==1.30.0
 openinference-instrumentation-smolagents==0.1.6
+PyYAML==6.0.2
 requests==2.32.3
 slack-bolt==1.22.0
 slack-sdk==3.34.0

@@ -71,11 +71,13 @@ dev-start-telemetry-server:
 	$(PYTHON) -m phoenix.server.main serve
 
 dev-start:
-	$(PYTHON) -m data_ai_bot
+	CONFIG_FILE=config/agent.yaml \
+		$(PYTHON) -m data_ai_bot
 
 dev-start-with-telemetry:
-	OTLP_ENDPOINT=http://0.0.0.0:6006/v1/traces \
-	$(PYTHON) -m data_ai_bot
+	CONFIG_FILE=config/agent.yaml \
+		OTLP_ENDPOINT=http://0.0.0.0:6006/v1/traces \
+		$(PYTHON) -m data_ai_bot
 
 
 build:

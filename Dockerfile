@@ -15,7 +15,11 @@ RUN pip install --disable-pip-version-check --no-cache-dir \
 
 COPY data ./data
 COPY data_ai_bot ./data_ai_bot
+COPY config ./config
+
 COPY tests ./tests
 COPY setup.cfg pyproject.toml ./
+
+ENV CONFIG_FILE=./config/agent.yaml
 
 CMD ["python3", "-m", "data_ai_bot"]
