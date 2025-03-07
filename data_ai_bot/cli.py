@@ -12,6 +12,7 @@ from slack_bolt.context.say import Say
 from cachetools import TTLCache  # type: ignore
 import smolagents  # type: ignore
 
+from data_ai_bot.config import load_app_config
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_message_age_in_seconds_from_event_dict,
@@ -209,6 +210,8 @@ def create_bolt_app(
 
 def main():
     LOGGER.info('Initializing...')
+    app_config = load_app_config()
+    LOGGER.info('app_config: %r', app_config)
     configure_otlp_if_enabled(get_optional_env('OTLP_ENDPOINT'))
     model = get_model(
         model_id=get_required_env('OPENAI_MODEL_ID'),
