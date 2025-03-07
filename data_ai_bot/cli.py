@@ -3,14 +3,16 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Callable, Mapping, Optional
+from typing import Callable, Optional, Sequence
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
 from slack_bolt.context.say import Say
 
 from cachetools import TTLCache  # type: ignore
+
 import smolagents  # type: ignore
+from smolagents import Tool
 
 from data_ai_bot.config import load_app_config
 from data_ai_bot.slack import (
@@ -20,8 +22,7 @@ from data_ai_bot.slack import (
     get_slack_mrkdwn_for_markdown
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
-from data_ai_bot.tools.data_hub.docmap import DocMapTool
-from data_ai_bot.tools.example.joke import get_joke
+from data_ai_bot.tools.resolver import DefaultToolResolver
 
 
 LOGGER = logging.getLogger(__name__)
@@ -63,11 +64,11 @@ def do_step_callback(step_log: smolagents.ActionStep):
 @dataclass(frozen=True)
 class SmolAgentsAgentFactory:
     model: smolagents.Model
-    headers: Mapping[str, str]
+    tools: Sequence[Tool]
 
     def __call__(self) -> smolagents.MultiStepAgent:
         return smolagents.ToolCallingAgent(
-            tools=[get_joke, DocMapTool(headers=self.headers)],
+            tools=self.tools,
             model=self.model,
             step_callbacks=[do_step_callback],
             max_steps=3
@@ -221,7 +222,11 @@ def main():
     headers = {
         'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
     }
-    agent_factory = SmolAgentsAgentFactory(model=model, headers=headers)
+    tool_resolver = DefaultToolResolver(headers=headers)
+    agent_factory = SmolAgentsAgentFactory(
+        model=model,
+        tools=tool_resolver.get_tools_by_name(app_config.agent.tools)
+    )
     app = create_bolt_app(
         agent_factory=agent_factory,
         system_prompt=get_system_prompt()
