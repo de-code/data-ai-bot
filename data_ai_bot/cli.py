@@ -3,7 +3,7 @@ import logging
 import os
 from pathlib import Path
 import traceback
-from typing import Mapping, Optional
+from typing import Callable, Mapping, Optional
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -59,16 +59,18 @@ def do_step_callback(step_log: smolagents.ActionStep):
         LOGGER.warning('Caught error: %s', stacktrace_str)
 
 
-def get_agent(
-    model: smolagents.Model,
+@dataclass(frozen=True)
+class SmolAgentsAgentFactory:
+    model: smolagents.Model
     headers: Mapping[str, str]
-) -> smolagents.MultiStepAgent:
-    return smolagents.ToolCallingAgent(
-        tools=[get_joke, DocMapTool(headers=headers)],
-        model=model,
-        step_callbacks=[do_step_callback],
-        max_steps=3
-    )
+
+    def __call__(self) -> smolagents.MultiStepAgent:
+        return smolagents.ToolCallingAgent(
+            tools=[get_joke, DocMapTool(headers=self.headers)],
+            model=self.model,
+            step_callbacks=[do_step_callback],
+            max_steps=3
+        )
 
 
 def get_system_prompt() -> str:
@@ -89,7 +91,7 @@ def get_agent_message(
 
 @dataclass(frozen=True)
 class SlackChatApp:
-    agent: smolagents.MultiStepAgent
+    agent_factory: Callable[[], smolagents.MultiStepAgent]
     system_prompt: str
     slack_app: slack_bolt.App
     echo_message: bool = False
@@ -113,7 +115,7 @@ class SlackChatApp:
                     f'Hi <@{message_event.user}>! You said: {message_event.text}',
                     thread_ts=message_event.thread_ts
                 )
-            response_message = self.agent.run(
+            response_message = self.agent_factory().run(
                 get_agent_message(
                     system_prompt=self.system_prompt,
                     message_event=message_event
@@ -146,18 +148,24 @@ class SlackChatApp:
             )
 
 
+def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
+    agent = agent_factory()
+    assert agent is not None
+
+
 def create_bolt_app(
-    agent: smolagents.MultiStepAgent,
+    agent_factory: Callable[[], smolagents.MultiStepAgent],
     system_prompt: str,
     max_message_age_in_seconds: int = 600,
     echo_message: bool = False
 ):
+    check_agent_factory(agent_factory)
     app = slack_bolt.App(
         token=get_required_env('SLACK_BOT_TOKEN'),
         signing_secret=get_required_env('SLACK_SIGNING_SECRET')
     )
     chat_app = SlackChatApp(
-        agent=agent,
+        agent_factory=agent_factory,
         system_prompt=system_prompt,
         slack_app=app,
         echo_message=echo_message
@@ -210,9 +218,9 @@ def main():
     headers = {
         'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
     }
-    agent = get_agent(model=model, headers=headers)
+    agent_factory = SmolAgentsAgentFactory(model=model, headers=headers)
     app = create_bolt_app(
-        agent=agent,
+        agent_factory=agent_factory,
         system_prompt=get_system_prompt()
     )
     handler = SocketModeHandler(
