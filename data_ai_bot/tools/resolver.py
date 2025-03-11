@@ -1,58 +1,26 @@
-from dataclasses import dataclass
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+import importlib
 import inspect
 import logging
-from typing import Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence
 
 from smolagents import Tool  # type: ignore
 
-from data_ai_bot.tools.data_hub.docmap import DocMapTool
-from data_ai_bot.tools.example.joke import get_joke  # type: ignore
+from data_ai_bot.config import (
+    FromPythonToolClassConfig,
+    FromPythonToolInstanceConfig,
+    ToolDefinitionsConfig
+)
 
 
 LOGGER = logging.getLogger(__name__)
 
 
-ToolOrToolType = Union[Tool, type[Tool]]
-
-
-DEFAULT_TOOL_MAPPING: Mapping[str, ToolOrToolType] = {
-    'get_joke': get_joke,
-    'get_docmap_by_manuscript_id': DocMapTool
-}
-
-
-@dataclass(frozen=True)
-class DefaultToolResolver:
-    headers: Mapping[str, str]
-
+class ToolResolver(ABC):
+    @abstractmethod
     def get_tool_by_name(self, tool_name: str) -> Tool:
-        tool_or_tool_type = DEFAULT_TOOL_MAPPING.get(tool_name)
-        if tool_or_tool_type is not None:
-            tool = self.get_tool_by_instance_or_tool_type(tool_or_tool_type)
-            if tool.name != tool_name:
-                LOGGER.info('Renaming tool: %r -> %r', tool.name, tool_name)
-                tool.name = tool_name
-            return tool
-        raise KeyError(f'Unrecognised tool: {repr(tool_name)}')
-
-    def get_tool_by_instance_or_tool_type(self, tool_or_tool_type: ToolOrToolType) -> Tool:
-        if isinstance(tool_or_tool_type, Tool):
-            LOGGER.info('Already a tool instance: %r', tool_or_tool_type)
-            return tool_or_tool_type
-        return self.get_tool_by_type(tool_or_tool_type)
-
-    def get_tool_by_type(self, tool_type: type[Tool]) -> Tool:
-        parameters = inspect.signature(tool_type).parameters
-        LOGGER.info('tool_type: %r, parameters: %r', tool_type, parameters)
-        available_kwargs = {
-            'headers': self.headers
-        }
-        kwargs = {
-            key: value
-            for key, value in available_kwargs.items()
-            if key in parameters
-        }
-        return tool_type(**kwargs)
+        pass
 
     def get_tools_by_name(
         self,
@@ -62,3 +30,74 @@ class DefaultToolResolver:
             self.get_tool_by_name(tool_name)
             for tool_name in tool_names
         ]
+
+
+class InvalidToolNameError(KeyError):
+    pass
+
+
+def get_tool_with_name(tool: Tool, tool_name: str) -> Tool:
+    if tool.name != tool_name:
+        LOGGER.info('Renaming tool: %r -> %r', tool.name, tool_name)
+        tool.name = tool_name
+    return tool
+
+
+def get_tool_from_tool_class(
+    tool_class: type[Tool],
+    available_kwargs: Mapping[str, Any]
+) -> Tool:
+    parameters = inspect.signature(tool_class).parameters
+    LOGGER.info('tool_class: %r, parameters: %r', tool_class, parameters)
+    kwargs = {
+        key: value
+        for key, value in available_kwargs.items()
+        if key in parameters
+    }
+    return tool_class(**kwargs)
+
+
+def get_tool_from_python_tool_instance(
+    config: FromPythonToolInstanceConfig
+) -> Tool:
+    tool_module = importlib.import_module(config.module)
+    tool = getattr(tool_module, config.key)
+    assert isinstance(tool, Tool)
+    return get_tool_with_name(tool, tool_name=config.name)
+
+
+def get_tool_from_python_tool_class(
+    config: FromPythonToolClassConfig,
+    available_kwargs: Mapping[str, Any]
+) -> Tool:
+    tool_module = importlib.import_module(config.module)
+    tool_class = getattr(tool_module, config.class_name)
+    assert isinstance(tool_class, type)
+    tool = get_tool_from_tool_class(tool_class, available_kwargs=available_kwargs)
+    assert isinstance(tool, Tool)
+    return get_tool_with_name(tool, tool_name=config.name)
+
+
+@dataclass(frozen=True)
+class ConfigToolResolver(ToolResolver):
+    tool_definitions_config: ToolDefinitionsConfig
+    headers: Mapping[str, str] = field(default_factory=dict)
+
+    def get_tool_by_name(self, tool_name: str) -> Tool:
+        available_kwargs = {
+            'headers': self.headers
+        }
+        for from_python_tool_instance_config in (
+            self.tool_definitions_config.from_python_tool_instance
+        ):
+            if from_python_tool_instance_config.name == tool_name:
+                return get_tool_from_python_tool_instance(from_python_tool_instance_config)
+        for from_python_tool_class_config in (
+            self.tool_definitions_config.from_python_tool_class
+        ):
+            if from_python_tool_class_config.name == tool_name:
+                return get_tool_from_python_tool_class(
+                    from_python_tool_class_config,
+                    available_kwargs=available_kwargs
+                )
+        raise InvalidToolNameError(f'Unrecognised tool: {repr(tool_name)}')
