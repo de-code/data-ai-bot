@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+WORKDIR /app/data-ai-bot
+
 COPY requirements.build.txt ./
 RUN pip install --disable-pip-version-check --no-cache-dir \
     -r requirements.build.txt
