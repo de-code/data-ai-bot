@@ -1,6 +1,7 @@
 # Mostly copied from smolagents examples
 
 import logging
+import re
 from typing import Any, Mapping, Optional
 
 import jinja2
@@ -18,6 +19,21 @@ def get_requests_session() -> requests.Session:
 def get_evaluated_template(template: str, variables: Mapping[str, Any]) -> Any:
     compiled_template = jinja2.Template(template)
     return compiled_template.render(variables)
+
+
+def validate_tool_parameters(
+    tool_parameters: Mapping[str, Any],
+    inputs: Mapping[str, dict]
+) -> Any:
+    for key, value in tool_parameters.items():
+        input_config = inputs[key]
+        regex = input_config.get('regex')
+        if regex:
+            if not re.match(regex, value):
+                raise ValueError(
+                    f'Tool parameter value {repr(value)} for {repr(key)}'
+                    f' does not match {repr(regex)}'
+                )
 
 
 class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attributes
@@ -44,6 +60,7 @@ class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attribut
         self.skip_forward_signature_validation = True
 
     def forward(self, **kwargs):  # pylint: disable=arguments-differ
+        validate_tool_parameters(kwargs, self.inputs)
         session = get_requests_session()
         url = get_evaluated_template(self.url, kwargs)
         params = {
