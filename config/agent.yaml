@@ -24,8 +24,17 @@ toolDefinitions:
             - From the DocMap, who are the editors of 101859?
             - How many reviews does the DocMap of 101859 have?
 
+    - name: get_zen_quote
+      module: data_ai_bot.tools.sources.web_api
+      className: WebApiTool
+      initParameters:
+        description: |-
+          Retrieve a random inspirational zen quote as JSON.
+        url: https://zenquotes.io/api/random
+
 agent:
   tools:
     - get_joke
     - get_docmap_by_manuscript_id
     - how_to_use_this_tool
+    - get_zen_quote
