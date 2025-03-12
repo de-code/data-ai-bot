@@ -36,6 +36,24 @@ def validate_tool_parameters(
                 )
 
 
+def get_evaluated_query_parameters(
+    query_parameters: Mapping[str, Any],
+    variables: Mapping[str, Any]
+) -> Mapping[str, Any]:
+    return {
+        key: get_evaluated_template(value, variables)
+        for key, value in query_parameters.items()
+    }
+
+
+def get_query_parameters_without_empty_values(params: Mapping[str, Any]) -> Mapping[str, Any]:
+    return {
+        key: value
+        for key, value in params.items()
+        if value
+    }
+
+
 class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attributes
     def __init__(  # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
@@ -46,6 +64,7 @@ class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attribut
         headers: Optional[Mapping[str, str]] = None,
         inputs: Optional[Mapping[str, dict]] = None,
         method: str = 'GET',
+        remove_empty_query_parameters: bool = True,
         output_type: str = 'string'
     ):
         super().__init__()
@@ -57,16 +76,19 @@ class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attribut
         self.inputs: Mapping[str, dict] = inputs or {}
         self.query_parameters = query_parameters or {}
         self.headers = headers
+        self.remove_empty_query_parameters = remove_empty_query_parameters
         self.skip_forward_signature_validation = True
 
     def forward(self, **kwargs):  # pylint: disable=arguments-differ
         validate_tool_parameters(kwargs, self.inputs)
         session = get_requests_session()
         url = get_evaluated_template(self.url, kwargs)
-        params = {
-            key: get_evaluated_template(value, kwargs)
-            for key, value in self.query_parameters.items()
-        }
+        params = get_evaluated_query_parameters(
+            self.query_parameters,
+            kwargs
+        )
+        if self.remove_empty_query_parameters:
+            params = get_query_parameters_without_empty_values(params)
         LOGGER.info('url: %r (method: %r, params: %r)', url, self.method, params)
         response = session.request(
             method=self.method,

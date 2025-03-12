@@ -128,6 +128,33 @@ class TestWebApiTool:
             headers=ANY
         )
 
+    def test_should_remove_empty_query_parameters(
+        self,
+        requests_request_fn_mock: MagicMock
+    ):
+        tool = WebApiTool(
+            name='name_1',
+            description='description_1',
+            inputs={
+                'param_1': {
+                    'type': 'string',
+                    'description': 'Test param 1'
+                }
+            },
+            url=r'https://example/url_1',
+            query_parameters={
+                'param_1': r'{{ param_1 }}'
+            },
+            remove_empty_query_parameters=True
+        )
+        tool.forward(param_1='')
+        requests_request_fn_mock.assert_called_with(
+            method='GET',
+            url=r'https://example/url_1',
+            params={},
+            headers=ANY
+        )
+
     def test_should_return_response_from_api(self, requests_response_mock: MagicMock):
         tool = WebApiTool(
             name='name_1',
