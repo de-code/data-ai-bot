@@ -38,7 +38,9 @@ toolDefinitions:
           manuscript_id:
             type: string
             description: 'The 5 or 6 digit eLife manuscript id'
-        url: 'https://data-hub-api.elifesciences.org/enhanced-preprints/docmaps/v2/by-publisher/elife/get-by-manuscript-id?manuscript_id={{ manuscript_id }}'
+        url: 'https://data-hub-api.elifesciences.org/enhanced-preprints/docmaps/v2/by-publisher/elife/get-by-manuscript-id'
+        query_parameters:
+          manuscript_id: '{{ manuscript_id }}'
 
 agent:
   tools:

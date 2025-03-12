@@ -55,6 +55,7 @@ class TestWebApiTool:
         requests_request_fn_mock.assert_called_with(
             method='POST',
             url=URL_1,
+            params=ANY,
             headers=HEADERS_1
         )
 
@@ -77,6 +78,33 @@ class TestWebApiTool:
         requests_request_fn_mock.assert_called_with(
             method='GET',
             url=r'https://example/url_1?param_1=value_1',
+            params=ANY,
+            headers=ANY
+        )
+
+    def test_should_replace_placeholders_in_query_parameters(
+        self,
+        requests_request_fn_mock: MagicMock
+    ):
+        tool = WebApiTool(
+            name='name_1',
+            description='description_1',
+            inputs={
+                'param_1': {
+                    'type': 'string',
+                    'description': 'Test param 1'
+                }
+            },
+            url=r'https://example/url_1',
+            query_parameters={
+                'param_1': r'{{ param_1 }}'
+            }
+        )
+        tool.forward(param_1='value_1')
+        requests_request_fn_mock.assert_called_with(
+            method='GET',
+            url=r'https://example/url_1',
+            params={'param_1': 'value_1'},
             headers=ANY
         )
 

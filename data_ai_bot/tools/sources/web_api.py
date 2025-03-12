@@ -26,6 +26,7 @@ class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attribut
         name: str,
         description: str,
         url: str,
+        query_parameters: Optional[Mapping[str, str]] = None,
         headers: Optional[Mapping[str, str]] = None,
         inputs: Optional[Mapping[str, dict]] = None,
         method: str = 'GET',
@@ -38,16 +39,22 @@ class WebApiTool(smolagents.Tool):  # pylint: disable=too-many-instance-attribut
         self.url = url
         self.method = method
         self.inputs: Mapping[str, dict] = inputs or {}
+        self.query_parameters = query_parameters or {}
         self.headers = headers
         self.skip_forward_signature_validation = True
 
     def forward(self, **kwargs):  # pylint: disable=arguments-differ
         session = get_requests_session()
         url = get_evaluated_template(self.url, kwargs)
-        LOGGER.info('url: %r (method: %r)', url, self.method)
+        params = {
+            key: get_evaluated_template(value, kwargs)
+            for key, value in self.query_parameters.items()
+        }
+        LOGGER.info('url: %r (method: %r, params: %r)', url, self.method, params)
         response = session.request(
             method=self.method,
             url=url,
+            params=params,
             headers=self.headers
         )
         response.raise_for_status()
