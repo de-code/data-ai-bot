@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 import importlib
 import inspect
 import logging
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Optional, Sequence
 
 from smolagents import Tool  # type: ignore
 
@@ -36,10 +36,17 @@ class InvalidToolNameError(KeyError):
     pass
 
 
-def get_tool_with_name(tool: Tool, tool_name: str) -> Tool:
+def get_updated_tool(
+    tool: Tool,
+    tool_name: str,
+    description: Optional[str] = None
+) -> Tool:
     if tool.name != tool_name:
         LOGGER.info('Renaming tool: %r -> %r', tool.name, tool_name)
         tool.name = tool_name
+    if description and tool.description != description:
+        LOGGER.info('Updating tool description of %r: %r', tool_name, description)
+        tool.description = description
     return tool
 
 
@@ -64,7 +71,7 @@ def get_tool_from_python_tool_instance(
     tool_module = importlib.import_module(config.module)
     tool = getattr(tool_module, config.key)
     assert isinstance(tool, Tool)
-    return get_tool_with_name(tool, tool_name=config.name)
+    return get_updated_tool(tool, tool_name=config.name, description=config.description)
 
 
 def get_tool_from_python_tool_class(
@@ -74,13 +81,18 @@ def get_tool_from_python_tool_class(
     tool_module = importlib.import_module(config.module)
     tool_class = getattr(tool_module, config.class_name)
     assert isinstance(tool_class, type)
+    if config.description:
+        available_kwargs = {
+            **available_kwargs,
+            'description': config.description
+        }
     tool = get_tool_from_tool_class(
         tool_class,
         init_parameters=config.init_parameters,
         available_kwargs=available_kwargs
     )
     assert isinstance(tool, Tool)
-    return get_tool_with_name(tool, tool_name=config.name)
+    return get_updated_tool(tool, tool_name=config.name, description=config.description)
 
 
 @dataclass(frozen=True)

@@ -60,6 +60,13 @@ class TestFromPythonToolInstanceConfig:
         assert tool_config.module == FROM_PYTHON_TOOL_INSTANCE_CONFIG_DICT_1['module']
         assert tool_config.key == FROM_PYTHON_TOOL_INSTANCE_CONFIG_DICT_1['key']
 
+    def test_should_load_tool_description(self):
+        tool_config = FromPythonToolInstanceConfig.from_dict({
+            **FROM_PYTHON_TOOL_INSTANCE_CONFIG_DICT_1,
+            'description': 'Description 1'
+        })
+        assert tool_config.description == 'Description 1'
+
 
 class TestFromPythonToolClassConfig:
     def test_should_load_tool_config(self):
@@ -76,6 +83,13 @@ class TestFromPythonToolClassConfig:
             'initParameters': {'init_key_1': 'init_value_1'}
         })
         assert tool_config.init_parameters == {'init_key_1': 'init_value_1'}
+
+    def test_should_load_tool_description(self):
+        tool_config = FromPythonToolClassConfig.from_dict({
+            **FROM_PYTHON_TOOL_CLASS_CONFIG_DICT_1,
+            'description': 'Description 1'
+        })
+        assert tool_config.description == 'Description 1'
 
 
 class TestToolDefinitionsConfig:

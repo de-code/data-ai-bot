@@ -3,16 +3,18 @@ toolDefinitions:
     - name: get_joke
       module: data_ai_bot.tools.example.joke
       key: get_joke
+      description: |-
+        Fetches a random programming joke.
 
   fromPythonToolClass:
     - name: how_to_use_this_tool
+      description: |-
+        Explain to the user how to use this AI tool.
+        This also summarised what this tool knows.
+        Also provides some example prompts.
       module: data_ai_bot.tools.sources.static
       className: StaticContentTool
       initParameters:
-        description: |-
-          Explain to the user how to use this AI tool.
-          This also summarised what this tool knows.
-          Also provides some example prompts.
         content: |-
           You can for example ask questions relating to individual DocMap by a manuscript id.
 
@@ -29,11 +31,11 @@ toolDefinitions:
         url: https://zenquotes.io/api/random
 
     - name: get_docmap_by_manuscript_id
+      description: |-
+        Fetches a DocMap as JSON from the Data Hub DocMaps API.
       module: data_ai_bot.tools.sources.web_api
       className: WebApiTool
       initParameters:
-        description: |-
-          Fetches a DocMap as JSON from the Data Hub DocMaps API.
         inputs:
           manuscript_id:
             type: string
@@ -44,11 +46,11 @@ toolDefinitions:
           manuscript_id: '{{ manuscript_id }}'
 
     - name: search_elife_papers
+      description: |-
+        Search eLife papers and returns JSON. This also returns the total count.
       module: data_ai_bot.tools.sources.web_api
       className: WebApiTool
       initParameters:
-        description: |-
-          Search eLife papers and returns JSON. This also returns the total count.
         inputs:
           query:
             type: string
