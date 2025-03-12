@@ -8,6 +8,7 @@ from data_ai_bot.config import (
 from data_ai_bot.tools.data_hub.docmap import DocMapTool
 from data_ai_bot.tools.example.joke import get_joke
 from data_ai_bot.tools.resolver import ConfigToolResolver
+from data_ai_bot.tools.sources.static import StaticContentTool
 
 
 DEFAULT_TOOL_DEFINITIONS_CONFIG: ToolDefinitionsConfig = ToolDefinitionsConfig(
@@ -27,8 +28,10 @@ DEFAULT_TOOL_DEFINITIONS_CONFIG: ToolDefinitionsConfig = ToolDefinitionsConfig(
     ]
 )
 
+DEFAULT_HEADERS = {'User-Agent': 'Agent-Bot/1.0'}
+
 DEFAULT_CONFIG_TOOL_RESOLVER = ConfigToolResolver(
-    headers={'User-Agent': 'Agent-Bot/1.0'},
+    headers=DEFAULT_HEADERS,
     tool_definitions_config=DEFAULT_TOOL_DEFINITIONS_CONFIG
 )
 
@@ -46,3 +49,24 @@ class TestConfigToolResolver:
         tool = DEFAULT_CONFIG_TOOL_RESOLVER.get_tool_by_name('get_docmap_by_manuscript_id')
         assert isinstance(tool, DocMapTool)
         assert tool.headers == DEFAULT_CONFIG_TOOL_RESOLVER.headers
+
+    def test_should_resolve_tool_with_init_parameters(self):
+        resolver = ConfigToolResolver(
+            headers=DEFAULT_HEADERS,
+            tool_definitions_config=ToolDefinitionsConfig(
+                from_python_tool_class=[FromPythonToolClassConfig(
+                    name='tool_1',
+                    module='data_ai_bot.tools.sources.static',
+                    class_name='StaticContentTool',
+                    init_parameters={
+                        'description': 'Description 1',
+                        'content': 'Content 1'
+                    }
+                )]
+            )
+        )
+        tool = resolver.get_tool_by_name('tool_1')
+        assert isinstance(tool, StaticContentTool)
+        assert tool.name == 'tool_1'
+        assert tool.description == 'Description 1'
+        assert tool.content == 'Content 1'

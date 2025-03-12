@@ -3,12 +3,29 @@ toolDefinitions:
     - name: get_joke
       module: data_ai_bot.tools.example.joke
       key: get_joke
+
   fromPythonToolClass:
     - name: get_docmap_by_manuscript_id
       module: data_ai_bot.tools.data_hub.docmap
       className: DocMapTool
 
+    - name: how_to_use_this_tool
+      module: data_ai_bot.tools.sources.static
+      className: StaticContentTool
+      initParameters:
+        description: |-
+          Explain to the user how to use this AI tool.
+          This also summarised what this tool knows.
+          Also provides some example prompts.
+        content: |-
+          You can for example ask questions relating to individual DocMap by a manuscript id.
+
+          Example prompts:
+            - From the DocMap, who are the editors of 101859?
+            - How many reviews does the DocMap of 101859 have?
+
 agent:
   tools:
     - get_joke
     - get_docmap_by_manuscript_id
+    - how_to_use_this_tool

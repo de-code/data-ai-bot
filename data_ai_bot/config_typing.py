@@ -1,4 +1,4 @@
-from typing import NotRequired, Sequence, TypedDict
+from typing import Any, Mapping, NotRequired, Sequence, TypedDict
 
 
 class FromPythonToolInstanceConfigDict(TypedDict):
@@ -11,6 +11,7 @@ class FromPythonToolClassConfigDict(TypedDict):
     name: str
     module: str
     className: str
+    initParameters: NotRequired[Mapping[str, Any]]
 
 
 class ToolDefinitionsConfigDict(TypedDict):

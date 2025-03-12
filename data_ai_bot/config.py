@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 import logging
 import os
-from typing import Sequence
+from typing import Any, Mapping, Sequence
 
 import yaml
 
@@ -43,6 +43,7 @@ class FromPythonToolClassConfig:
     name: str
     module: str
     class_name: str
+    init_parameters: Mapping[str, Any] = field(default_factory=dict)
 
     @staticmethod
     def from_dict(
@@ -51,7 +52,8 @@ class FromPythonToolClassConfig:
         return FromPythonToolClassConfig(
             name=from_python_tool_class_config_dict['name'],
             module=from_python_tool_class_config_dict['module'],
-            class_name=from_python_tool_class_config_dict['className']
+            class_name=from_python_tool_class_config_dict['className'],
+            init_parameters=from_python_tool_class_config_dict.get('initParameters', {})
         )
 
 

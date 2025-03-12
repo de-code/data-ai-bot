@@ -45,16 +45,17 @@ def get_tool_with_name(tool: Tool, tool_name: str) -> Tool:
 
 def get_tool_from_tool_class(
     tool_class: type[Tool],
+    init_parameters: Mapping[str, Any],
     available_kwargs: Mapping[str, Any]
 ) -> Tool:
     parameters = inspect.signature(tool_class).parameters
     LOGGER.info('tool_class: %r, parameters: %r', tool_class, parameters)
-    kwargs = {
+    extra_kwargs = {
         key: value
         for key, value in available_kwargs.items()
-        if key in parameters
+        if key in parameters and key not in init_parameters
     }
-    return tool_class(**kwargs)
+    return tool_class(**init_parameters, **extra_kwargs)
 
 
 def get_tool_from_python_tool_instance(
@@ -73,7 +74,11 @@ def get_tool_from_python_tool_class(
     tool_module = importlib.import_module(config.module)
     tool_class = getattr(tool_module, config.class_name)
     assert isinstance(tool_class, type)
-    tool = get_tool_from_tool_class(tool_class, available_kwargs=available_kwargs)
+    tool = get_tool_from_tool_class(
+        tool_class,
+        init_parameters=config.init_parameters,
+        available_kwargs=available_kwargs
+    )
     assert isinstance(tool, Tool)
     return get_tool_with_name(tool, tool_name=config.name)
 
@@ -85,6 +90,7 @@ class ConfigToolResolver(ToolResolver):
 
     def get_tool_by_name(self, tool_name: str) -> Tool:
         available_kwargs = {
+            'name': tool_name,
             'headers': self.headers
         }
         for from_python_tool_instance_config in (

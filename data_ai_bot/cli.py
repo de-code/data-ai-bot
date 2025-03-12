@@ -175,6 +175,7 @@ class SlackChatApp:
 
 def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
     agent = agent_factory()
+    LOGGER.info('System Prompt: %r', agent.system_prompt)
     assert agent is not None
 
 
@@ -252,9 +253,11 @@ def main():
         ),
         headers=headers
     )
+    tools = tool_resolver.get_tools_by_name(app_config.agent.tools)
+    LOGGER.info('Tools: %r', tools)
     agent_factory = SmolAgentsAgentFactory(
         model=model,
-        tools=tool_resolver.get_tools_by_name(app_config.agent.tools)
+        tools=tools
     )
     app = create_bolt_app(
         agent_factory=agent_factory,
