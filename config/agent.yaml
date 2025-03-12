@@ -3,6 +3,8 @@ toolDefinitions:
     - name: get_joke
       module: data_ai_bot.tools.example.joke
       key: get_joke
+      description: |-
+        Fetches a random programming joke.
 
   fromPythonToolClass:
     - name: how_to_use_this_tool

@@ -5,6 +5,7 @@ class FromPythonToolInstanceConfigDict(TypedDict):
     name: str
     module: str
     key: str
+    description: NotRequired[str]
 
 
 class FromPythonToolClassConfigDict(TypedDict):
@@ -12,6 +13,7 @@ class FromPythonToolClassConfigDict(TypedDict):
     module: str
     className: str
     initParameters: NotRequired[Mapping[str, Any]]
+    description: NotRequired[str]
 
 
 class ToolDefinitionsConfigDict(TypedDict):

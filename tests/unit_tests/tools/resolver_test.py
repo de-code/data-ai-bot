@@ -70,3 +70,37 @@ class TestConfigToolResolver:
         assert tool.name == 'tool_1'
         assert tool.description == 'Description 1'
         assert tool.content == 'Content 1'
+
+    def test_should_be_able_to_rename_and_change_description_of_tool_instance(self):
+        resolver = ConfigToolResolver(
+            headers=DEFAULT_HEADERS,
+            tool_definitions_config=ToolDefinitionsConfig(
+                from_python_tool_instance=[FromPythonToolInstanceConfig(
+                    name='new_name',
+                    module='data_ai_bot.tools.example.joke',
+                    key='get_joke',
+                    description='New description'
+                )]
+            )
+        )
+        tool = resolver.get_tool_by_name('new_name')
+        assert tool == get_joke
+        assert tool.name == 'new_name'
+        assert tool.description == 'New description'
+
+    def test_should_be_able_to_rename_and_change_description_of_tool_class(self):
+        resolver = ConfigToolResolver(
+            headers=DEFAULT_HEADERS,
+            tool_definitions_config=ToolDefinitionsConfig(
+                from_python_tool_class=[FromPythonToolClassConfig(
+                    name='new_name',
+                    module='data_ai_bot.tools.data_hub.docmap',
+                    class_name='DocMapTool',
+                    description='New description'
+                )]
+            )
+        )
+        tool = resolver.get_tool_by_name('new_name')
+        assert isinstance(tool, DocMapTool)
+        assert tool.name == 'new_name'
+        assert tool.description == 'New description'
