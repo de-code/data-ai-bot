@@ -70,6 +70,13 @@ class TestFromPythonToolClassConfig:
         assert tool_config.module == FROM_PYTHON_TOOL_CLASS_CONFIG_DICT_1['module']
         assert tool_config.class_name == FROM_PYTHON_TOOL_CLASS_CONFIG_DICT_1['className']
 
+    def test_should_load_tool_init_parameters(self):
+        tool_config = FromPythonToolClassConfig.from_dict({
+            **FROM_PYTHON_TOOL_CLASS_CONFIG_DICT_1,
+            'initParameters': {'init_key_1': 'init_value_1'}
+        })
+        assert tool_config.init_parameters == {'init_key_1': 'init_value_1'}
+
 
 class TestToolDefinitionsConfig:
     def test_should_be_falsy_if_empty(self):
