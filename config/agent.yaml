@@ -43,9 +43,38 @@ toolDefinitions:
         query_parameters:
           manuscript_id: '{{ manuscript_id }}'
 
+    - name: search_elife_papers
+      module: data_ai_bot.tools.sources.web_api
+      className: WebApiTool
+      initParameters:
+        description: |-
+          Search eLife papers and returns JSON. This also returns the total count.
+        inputs:
+          query:
+            type: string
+            description: 'The search query. Can be empty.'
+          significance:
+            type: string
+            description: |-
+              The minimum significance filter criteria or empty.
+              Only use if specified by user.
+              One of: landmark,fundamental,important,valuable,useful
+          strength:
+            type: string
+            description: |-
+              The minimum strength filter criteria or empty.
+              Only use if specified by user.
+              One of: exceptional,compelling,convincing,solid,incomplete,inadequate
+        url: 'https://api.elifesciences.org/search'
+        query_parameters:
+          for: '{{ query }}'
+          elifeAssessmentSignificance[]: '{{ significance }}'
+          elifeAssessmentStrength[]: '{{ strength }}'
+
 agent:
   tools:
     - get_joke
     - get_docmap_by_manuscript_id
     - how_to_use_this_tool
     - get_zen_quote
+    - search_elife_papers
