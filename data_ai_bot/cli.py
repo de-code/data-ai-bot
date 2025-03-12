@@ -14,7 +14,12 @@ from cachetools import TTLCache  # type: ignore
 import smolagents  # type: ignore
 from smolagents import Tool
 
-from data_ai_bot.config import load_app_config
+from data_ai_bot.config import (
+    FromPythonToolClassConfig,
+    FromPythonToolInstanceConfig,
+    ToolDefinitionsConfig,
+    load_app_config
+)
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_message_age_in_seconds_from_event_dict,
@@ -22,10 +27,28 @@ from data_ai_bot.slack import (
     get_slack_mrkdwn_for_markdown
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
-from data_ai_bot.tools.resolver import DefaultToolResolver
+from data_ai_bot.tools.resolver import ConfigToolResolver
 
 
 LOGGER = logging.getLogger(__name__)
+
+
+DEFAULT_TOOL_DEFINITIONS_CONFIG: ToolDefinitionsConfig = ToolDefinitionsConfig(
+    from_python_tool_instance=[
+        FromPythonToolInstanceConfig(
+            name='get_joke',
+            module='data_ai_bot.tools.example.joke',
+            key='get_joke'
+        )
+    ],
+    from_python_tool_class=[
+        FromPythonToolClassConfig(
+            name='get_docmap_by_manuscript_id',
+            module='data_ai_bot.tools.data_hub.docmap',
+            class_name='DocMapTool'
+        )
+    ]
+)
 
 
 def get_optional_env(key: str) -> Optional[str]:
@@ -222,7 +245,13 @@ def main():
     headers = {
         'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
     }
-    tool_resolver = DefaultToolResolver(headers=headers)
+    tool_resolver = ConfigToolResolver(
+        tool_definitions_config=(
+            app_config.tool_definitions
+            or DEFAULT_TOOL_DEFINITIONS_CONFIG
+        ),
+        headers=headers
+    )
     agent_factory = SmolAgentsAgentFactory(
         model=model,
         tools=tool_resolver.get_tools_by_name(app_config.agent.tools)
