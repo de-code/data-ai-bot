@@ -112,6 +112,12 @@ start:
 logs:
 	$(DOCKER_COMPOSE) logs -f
 
+stop:
+	$(DOCKER_COMPOSE) down
+
+clean:
+	$(DOCKER_COMPOSE) down -v
+
 
 ci-build:
 	$(MAKE) DOCKER_COMPOSE="$(DOCKER_COMPOSE_CI)" build
