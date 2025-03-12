@@ -1,5 +1,5 @@
 from typing import Iterator
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 import requests
@@ -49,8 +49,7 @@ class TestWebApiTool:
             description='description_1',
             url=URL_1,
             method='POST',
-            headers=HEADERS_1,
-            output_type='string'
+            headers=HEADERS_1
         )
         tool.forward()
         requests_request_fn_mock.assert_called_with(
@@ -59,11 +58,32 @@ class TestWebApiTool:
             headers=HEADERS_1
         )
 
+    def test_should_replace_placeholders_in_url(
+        self,
+        requests_request_fn_mock: MagicMock
+    ):
+        tool = WebApiTool(
+            name='name_1',
+            description='description_1',
+            inputs={
+                'param_1': {
+                    'type': 'string',
+                    'description': 'Test param 1'
+                }
+            },
+            url=r'https://example/url_1?param_1={{ param_1 }}',
+        )
+        tool.forward(param_1='value_1')
+        requests_request_fn_mock.assert_called_with(
+            method='GET',
+            url=r'https://example/url_1?param_1=value_1',
+            headers=ANY
+        )
+
     def test_should_return_response_from_api(self, requests_response_mock: MagicMock):
         tool = WebApiTool(
             name='name_1',
             description='description_1',
-            url=URL_1,
-            output_type='string'
+            url=URL_1
         )
         assert tool.forward() == requests_response_mock.json.return_value
