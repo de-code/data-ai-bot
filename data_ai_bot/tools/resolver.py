@@ -81,6 +81,11 @@ def get_tool_from_python_tool_class(
     tool_module = importlib.import_module(config.module)
     tool_class = getattr(tool_module, config.class_name)
     assert isinstance(tool_class, type)
+    if config.description:
+        available_kwargs = {
+            **available_kwargs,
+            'description': config.description
+        }
     tool = get_tool_from_tool_class(
         tool_class,
         init_parameters=config.init_parameters,

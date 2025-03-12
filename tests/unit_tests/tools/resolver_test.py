@@ -56,10 +56,10 @@ class TestConfigToolResolver:
             tool_definitions_config=ToolDefinitionsConfig(
                 from_python_tool_class=[FromPythonToolClassConfig(
                     name='tool_1',
+                    description='Description 1',
                     module='data_ai_bot.tools.sources.static',
                     class_name='StaticContentTool',
                     init_parameters={
-                        'description': 'Description 1',
                         'content': 'Content 1'
                     }
                 )]
