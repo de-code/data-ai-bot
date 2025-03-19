@@ -8,6 +8,8 @@ from google.cloud.bigquery.table import RowIterator
 
 import smolagents  # type: ignore
 
+from data_ai_bot.utils.json import get_json_as_csv_lines
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -51,21 +53,25 @@ class BigQueryTool(smolagents.Tool):  # pylint: disable=too-many-instance-attrib
         description: str,
         project_name: str,
         sql_query: str,
-        output_type: str = 'string'
+        output_type: str = 'string',
+        output_format: str = 'json'
     ):
         super().__init__()
         self.name = name
         self.description = description
         self.output_type = output_type
+        self.output_format = output_format
         self.project_name = project_name
         self.sql_query = sql_query
         self.inputs: Mapping[str, dict] = {}
         self.skip_forward_signature_validation = True
 
-    def forward(self):  # pylint: disable=arguments-differ
-        result = list(iter_dict_from_bq_query(
+    def forward(self) -> Any:  # pylint: disable=arguments-differ
+        result: Any = list(iter_dict_from_bq_query(
             project_name=self.project_name,
             query=self.sql_query
         ))
+        if self.output_format == 'csv':
+            result = '\n'.join(get_json_as_csv_lines(result))
         LOGGER.info('query results: %r', result)
         return result
