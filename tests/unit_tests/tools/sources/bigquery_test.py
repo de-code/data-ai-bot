@@ -5,6 +5,7 @@ import pytest
 
 from data_ai_bot.tools.sources import bigquery
 from data_ai_bot.tools.sources.bigquery import BigQueryTool
+from data_ai_bot.utils.json import get_json_as_csv_lines
 
 
 PROJECT_NAME_1 = 'project_name_1'
@@ -23,6 +24,12 @@ def _bigquery_mock() -> Iterator[MagicMock]:
 @pytest.fixture(name='iter_dict_from_bq_query_mock')
 def _iter_dict_from_bq_query_mock() -> Iterator[MagicMock]:
     with patch.object(bigquery, 'iter_dict_from_bq_query') as mock:
+        yield mock
+
+
+@pytest.fixture(name='get_json_as_csv_lines_mock')
+def _get_json_as_csv_lines_mock() -> Iterator[MagicMock]:
+    with patch.object(bigquery, 'get_json_as_csv_lines') as mock:
         yield mock
 
 
@@ -55,3 +62,17 @@ class TestBigQueryTool:
         )
         iter_dict_from_bq_query_mock.return_value = iter([ROW_1])
         assert tool.forward() == [ROW_1]
+
+    def test_should_return_query_results_as_csv(
+        self,
+        iter_dict_from_bq_query_mock: MagicMock
+    ):
+        tool = BigQueryTool(
+            name='name_1',
+            description='description_1',
+            project_name=PROJECT_NAME_1,
+            sql_query=SQL_QUERY_1,
+            output_format='csv'
+        )
+        iter_dict_from_bq_query_mock.return_value = iter([ROW_1])
+        assert tool.forward() == '\n'.join(list(get_json_as_csv_lines([ROW_1])))
