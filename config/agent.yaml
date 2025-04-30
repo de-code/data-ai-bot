@@ -94,6 +94,11 @@ toolDefinitions:
           FROM `elife-data-pipeline.prod.mv_Editorial_Public_Editor_Profile`
           WHERE Role_Name = 'Senior Editor'
 
+toolCollectionsDefinitions:
+  fromMcp:
+    - name: local_mcp
+      url: 'http://localhost:8080/sse'
+
 agent:
   tools:
     - get_joke
@@ -102,3 +107,5 @@ agent:
     - get_zen_quote
     - search_elife_papers
     - get_senior_editors
+  toolCollections:
+    - local_mcp
