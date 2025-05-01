@@ -246,26 +246,32 @@ def main():
     headers = {
         'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
     }
-    tool_resolver = ConfigToolResolver(
+    with ConfigToolResolver(
         tool_definitions_config=(
             app_config.tool_definitions
             or DEFAULT_TOOL_DEFINITIONS_CONFIG
         ),
+        tool_collection_definitions_config=(
+            app_config.tool_collection_definitions
+        ),
         headers=headers
-    )
-    tools = tool_resolver.get_tools_by_name(app_config.agent.tools)
-    LOGGER.info('Tools: %r', tools)
-    agent_factory = SmolAgentsAgentFactory(
-        model=model,
-        tools=tools
-    )
-    app = create_bolt_app(
-        agent_factory=agent_factory,
-        system_prompt=get_system_prompt()
-    )
-    handler = SocketModeHandler(
-        app=app,
-        app_token=get_required_env('SLACK_APP_TOKEN')
-    )
-    LOGGER.info('Starting...')
-    handler.start()
+    ) as tool_resolver:
+        tools = tool_resolver.get_tools_by_name(
+            app_config.agent.tools,
+            tool_collection_names=app_config.agent.tool_collections
+        )
+        LOGGER.info('Tools: %r', tools)
+        agent_factory = SmolAgentsAgentFactory(
+            model=model,
+            tools=tools
+        )
+        app = create_bolt_app(
+            agent_factory=agent_factory,
+            system_prompt=get_system_prompt()
+        )
+        handler = SocketModeHandler(
+            app=app,
+            app_token=get_required_env('SLACK_APP_TOKEN')
+        )
+        LOGGER.info('Starting...')
+        handler.start()

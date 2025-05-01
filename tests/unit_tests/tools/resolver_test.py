@@ -1,8 +1,10 @@
 import pytest
 
 from data_ai_bot.config import (
+    FromMcpConfig,
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
+    ToolCollectionDefinitionsConfig,
     ToolDefinitionsConfig
 )
 from data_ai_bot.tools.data_hub.docmap import DocMapTool
@@ -28,11 +30,23 @@ DEFAULT_TOOL_DEFINITIONS_CONFIG: ToolDefinitionsConfig = ToolDefinitionsConfig(
     ]
 )
 
+FROM_MCP_CONFIG_1: FromMcpConfig = FromMcpConfig(
+    name='mcp_1',
+    url='http://localhost:8080/sse'
+)
+
+TOOL_COLLECTION_DEFINITIONS_CONFIG_1: ToolCollectionDefinitionsConfig = (
+    ToolCollectionDefinitionsConfig(
+        from_mcp=[FROM_MCP_CONFIG_1]
+    )
+)
+
 DEFAULT_HEADERS = {'User-Agent': 'Agent-Bot/1.0'}
 
 DEFAULT_CONFIG_TOOL_RESOLVER = ConfigToolResolver(
     headers=DEFAULT_HEADERS,
-    tool_definitions_config=DEFAULT_TOOL_DEFINITIONS_CONFIG
+    tool_definitions_config=DEFAULT_TOOL_DEFINITIONS_CONFIG,
+    tool_collection_definitions_config=TOOL_COLLECTION_DEFINITIONS_CONFIG_1
 )
 
 

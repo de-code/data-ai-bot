@@ -1,0 +1,9 @@
+toolCollectionDefinitions:
+  fromMcp:
+    - name: local_mcp
+      url: 'http://mcp-server:8080/sse'
+
+agent:
+  tools: []
+  toolCollections:
+    - local_mcp

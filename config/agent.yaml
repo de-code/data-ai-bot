@@ -1,11 +1,4 @@
 toolDefinitions:
-  fromPythonToolInstance:
-    - name: get_joke
-      module: data_ai_bot.tools.example.joke
-      key: get_joke
-      description: |-
-        Fetches a random programming joke.
-
   fromPythonToolClass:
     - name: how_to_use_this_tool
       description: |-
@@ -94,11 +87,17 @@ toolDefinitions:
           FROM `elife-data-pipeline.prod.mv_Editorial_Public_Editor_Profile`
           WHERE Role_Name = 'Senior Editor'
 
+toolCollectionDefinitions:
+  fromMcp:
+    - name: local_mcp
+      url: 'http://localhost:8080/sse'
+
 agent:
   tools:
-    - get_joke
     - get_docmap_by_manuscript_id
     - how_to_use_this_tool
     - get_zen_quote
     - search_elife_papers
     - get_senior_editors
+  toolCollections:
+    - local_mcp

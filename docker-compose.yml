@@ -1,5 +1,18 @@
 services:
+    mcp-server:
+        image: ghcr.io/de-code/py-conf-mcp_unstable:main-e113860d-20250430.0848
+        environment:
+            - CONFIG_FILE=/config/mcp-server.yaml
+        volumes:
+            - ./config/mcp-server.yaml:/config/mcp-server.yaml
+
     data-ai-bot:
+        depends_on:
+            - mcp-server
         build:
             context: .
         image: ${IMAGE_REPO}:${IMAGE_TAG}
+        environment:
+            - CONFIG_FILE=/config/docker-agent.yaml
+        volumes:
+            - ./config/docker-agent.yaml:/config/docker-agent.yaml
