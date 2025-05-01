@@ -1,0 +1,12 @@
+toolDefinitions:
+  fromPythonFunction:
+    - name: get_joke
+      module: py_conf_mcp.tools.example.joke
+      key: get_joke
+      description: |-
+        Fetches a random programming joke.
+
+server:
+  name: 'Test MCP server'
+  tools:
+    - get_joke

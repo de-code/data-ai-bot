@@ -1,4 +1,8 @@
 services:
+    mcp-server:
+        ports:
+            - "8080:8080"
+
     data-ai-bot:
         environment:
           - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}

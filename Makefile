@@ -109,6 +109,9 @@ test: lint unit-tests
 start:
 	$(DOCKER_COMPOSE) up -d
 
+start-mcp-server:
+	$(DOCKER_COMPOSE) up -d mcp-server
+
 logs:
 	$(DOCKER_COMPOSE) logs -f
 
