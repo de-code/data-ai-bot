@@ -1,15 +1,18 @@
 from abc import ABC, abstractmethod
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 import importlib
 import inspect
 import logging
 from typing import Any, Mapping, Optional, Sequence
 
-from smolagents import Tool  # type: ignore
+from smolagents import Tool, ToolCollection  # type: ignore
 
 from data_ai_bot.config import (
+    FromMcpConfig,
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
+    ToolCollectionDefinitionsConfig,
     ToolDefinitionsConfig
 )
 
@@ -22,17 +25,30 @@ class ToolResolver(ABC):
     def get_tool_by_name(self, tool_name: str) -> Tool:
         pass
 
+    @abstractmethod
+    def get_tools_by_collection_name(self, tool_collection_name: str) -> Sequence[Tool]:
+        pass
+
     def get_tools_by_name(
         self,
-        tool_names: Sequence[str]
+        tool_names: Sequence[str],
+        tool_collection_names: Optional[Sequence[str]] = None
     ) -> Sequence[Tool]:
-        return [
+        result = [
             self.get_tool_by_name(tool_name)
             for tool_name in tool_names
         ]
+        if tool_collection_names:
+            for tool_collection_name in tool_collection_names:
+                result.extend(self.get_tools_by_collection_name(tool_collection_name))
+        return result
 
 
 class InvalidToolNameError(KeyError):
+    pass
+
+
+class InvalidToolCollectionNameError(KeyError):
     pass
 
 
@@ -98,7 +114,19 @@ def get_tool_from_python_tool_class(
 @dataclass(frozen=True)
 class ConfigToolResolver(ToolResolver):
     tool_definitions_config: ToolDefinitionsConfig
+    tool_collection_definitions_config: ToolCollectionDefinitionsConfig = (
+        ToolCollectionDefinitionsConfig(from_mcp=[])
+    )
     headers: Mapping[str, str] = field(default_factory=dict)
+    exit_stack: ExitStack = field(default_factory=ExitStack)
+
+    def __enter__(self):
+        self.exit_stack.__enter__()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.exit_stack.__exit__(exc_type, exc_val, exc_tb)
+        return False
 
     def get_tool_by_name(self, tool_name: str) -> Tool:
         available_kwargs = {
@@ -119,3 +147,19 @@ class ConfigToolResolver(ToolResolver):
                     available_kwargs=available_kwargs
                 )
         raise InvalidToolNameError(f'Unrecognised tool: {repr(tool_name)}')
+
+    def _get_tools_from_mcp_config(
+        self,
+        from_mcp_config: FromMcpConfig
+    ) -> Sequence[Tool]:
+        tool_collection_cm = ToolCollection.from_mcp({'url': from_mcp_config.url})
+        tool_collection = self.exit_stack.enter_context(tool_collection_cm)
+        return tool_collection.tools
+
+    def get_tools_by_collection_name(self, tool_collection_name: str) -> Sequence[Tool]:
+        for from_mcp in (
+            self.tool_collection_definitions_config.from_mcp
+        ):
+            if from_mcp.name == tool_collection_name:
+                return self._get_tools_from_mcp_config(from_mcp)
+        raise InvalidToolCollectionNameError(f'Unrecognised tool: {repr(tool_collection_name)}')
