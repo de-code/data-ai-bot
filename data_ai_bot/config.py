@@ -8,8 +8,10 @@ import yaml
 from data_ai_bot.config_typing import (
     AgentConfigDict,
     AppConfigDict,
+    FromMcpConfigDict,
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
+    ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
 
@@ -89,19 +91,56 @@ class ToolDefinitionsConfig:
 
 
 @dataclass(frozen=True)
+class FromMcpConfig:
+    name: str
+    url: str
+
+    @staticmethod
+    def from_dict(
+        from_mcp_config_dict: FromMcpConfigDict
+    ) -> 'FromMcpConfig':
+        return FromMcpConfig(
+            name=from_mcp_config_dict['name'],
+            url=from_mcp_config_dict['url']
+        )
+
+
+@dataclass(frozen=True)
+class ToolCollectionDefinitionsConfig:
+    from_mcp: Sequence[FromMcpConfig] = field(default_factory=list)
+
+    @staticmethod
+    def from_dict(
+        tool_collection_definitions_config_dict: ToolCollectionDefinitionsConfigDict
+    ) -> 'ToolCollectionDefinitionsConfig':
+        return ToolCollectionDefinitionsConfig(
+            from_mcp=list(map(
+                FromMcpConfig.from_dict,
+                tool_collection_definitions_config_dict.get('fromMcp', [])
+            )),
+        )
+
+    def __bool__(self) -> bool:
+        return bool(self.from_mcp)
+
+
+@dataclass(frozen=True)
 class AgentConfig:
     tools: Sequence[str]
+    tool_collections: Sequence[str]
 
     @staticmethod
     def from_dict(agent_config_dict: AgentConfigDict) -> 'AgentConfig':
         return AgentConfig(
-            tools=agent_config_dict['tools']
+            tools=agent_config_dict['tools'],
+            tool_collections=agent_config_dict.get('toolCollections', [])
         )
 
 
 @dataclass(frozen=True)
 class AppConfig:
     tool_definitions: ToolDefinitionsConfig
+    tool_collection_definitions: ToolCollectionDefinitionsConfig
     agent: AgentConfig
 
     @staticmethod
@@ -109,6 +148,9 @@ class AppConfig:
         return AppConfig(
             tool_definitions=ToolDefinitionsConfig.from_dict(
                 app_config_dict.get('toolDefinitions', {})
+            ),
+            tool_collection_definitions=ToolCollectionDefinitionsConfig.from_dict(
+                app_config_dict.get('toolCollectionDefinitions', {})
             ),
             agent=AgentConfig.from_dict(app_config_dict['agent'])
         )

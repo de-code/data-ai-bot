@@ -21,10 +21,21 @@ class ToolDefinitionsConfigDict(TypedDict):
     fromPythonToolClass: NotRequired[Sequence[FromPythonToolClassConfigDict]]
 
 
+class FromMcpConfigDict(TypedDict):
+    name: str
+    url: str
+
+
+class ToolCollectionDefinitionsConfigDict(TypedDict):
+    fromMcp: NotRequired[Sequence[FromMcpConfigDict]]
+
+
 class AgentConfigDict(TypedDict):
     tools: Sequence[str]
+    toolCollections: NotRequired[Sequence[str]]
 
 
 class AppConfigDict(TypedDict):
     toolDefinitions: NotRequired[ToolDefinitionsConfigDict]
+    toolCollectionDefinitions: NotRequired[ToolCollectionDefinitionsConfigDict]
     agent: AgentConfigDict

@@ -6,16 +6,20 @@ from data_ai_bot.config import (
     AgentConfig,
     AppConfig,
     EnvironmentVariables,
+    FromMcpConfig,
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
+    ToolCollectionDefinitionsConfig,
     ToolDefinitionsConfig,
     load_app_config
 )
 from data_ai_bot.config_typing import (
     AgentConfigDict,
     AppConfigDict,
+    FromMcpConfigDict,
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
+    ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
 
@@ -34,12 +38,23 @@ FROM_PYTHON_TOOL_CLASS_CONFIG_DICT_1: FromPythonToolClassConfigDict = {
 }
 
 
+FROM_MCP_CONFIG_DICT_1: FromMcpConfigDict = {
+    'name': 'mcp_1',
+    'url': 'http://localhost:8080/sse'
+}
+
+
 TOOL_DEFINITIONS_CONFIG_DICT_1: ToolDefinitionsConfigDict = {
     'fromPythonToolInstance': [
         FROM_PYTHON_TOOL_INSTANCE_CONFIG_DICT_1
     ]
 }
 
+TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1: ToolCollectionDefinitionsConfigDict = {
+    'fromMcp': [
+        FROM_MCP_CONFIG_DICT_1
+    ]
+}
 
 AGENT_CONFIG_DICT_1: AgentConfigDict = {
     'tools': ['tool_1', 'tool_2']
@@ -120,10 +135,46 @@ class TestToolDefinitionsConfig:
         assert bool(tool_config) is True
 
 
+class TestFromMcpConfig:
+    def test_should_load_mcp_config(self):
+        mcp_config = FromMcpConfig.from_dict(
+            FROM_MCP_CONFIG_DICT_1
+        )
+        assert mcp_config.name == FROM_MCP_CONFIG_DICT_1['name']
+        assert mcp_config.url == FROM_MCP_CONFIG_DICT_1['url']
+
+
+class TestToolCollectionDefinitionsConfig:
+    def test_should_be_falsy_if_empty(self):
+        tool_config = ToolCollectionDefinitionsConfig.from_dict({
+        })
+        assert bool(tool_config) is False
+
+    def test_should_load_tool_config(self):
+        tool_config = ToolCollectionDefinitionsConfig.from_dict({
+            'fromMcp': [
+                FROM_MCP_CONFIG_DICT_1
+            ]
+        })
+        assert tool_config.from_mcp == [
+            FromMcpConfig.from_dict(
+                FROM_MCP_CONFIG_DICT_1
+            )
+        ]
+        assert bool(tool_config) is True
+
+
 class TestAgentConfig:
     def test_should_load_tools(self):
         agent_config = AgentConfig.from_dict(AGENT_CONFIG_DICT_1)
         assert agent_config.tools == AGENT_CONFIG_DICT_1['tools']
+
+    def test_should_load_tool_collectionss(self):
+        agent_config = AgentConfig.from_dict({
+            **AGENT_CONFIG_DICT_1,
+            'toolCollections': ['tool_collection_1']
+        })
+        assert agent_config.tool_collections == ['tool_collection_1']
 
 
 class TestAppConfig:
@@ -138,6 +189,15 @@ class TestAppConfig:
         })
         assert app_config.tool_definitions == ToolDefinitionsConfig.from_dict(
             TOOL_DEFINITIONS_CONFIG_DICT_1
+        )
+
+    def test_should_load_tool_collection_definitions(self):
+        app_config = AppConfig.from_dict({
+            **APP_CONFIG_DICT_1,
+            'toolCollectionDefinitions': TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1
+        })
+        assert app_config.tool_collection_definitions == ToolCollectionDefinitionsConfig.from_dict(
+            TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1
         )
 
 
