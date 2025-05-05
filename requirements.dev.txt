@@ -1,6 +1,6 @@
 arize-phoenix==8.31.0
 flake8==7.2.0
-pylint==3.3.6
+pylint==3.3.7
 pytest==8.3.5
 pytest-watcher==0.4.3
 mypy==1.15.0
