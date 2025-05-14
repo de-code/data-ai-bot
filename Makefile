@@ -112,6 +112,9 @@ start:
 start-mcp-server:
 	$(DOCKER_COMPOSE) up -d mcp-server
 
+start-mcp-database-toolbox:
+	$(DOCKER_COMPOSE) up --wait -d mcp-database-toolbox
+
 logs:
 	$(DOCKER_COMPOSE) logs -f
 

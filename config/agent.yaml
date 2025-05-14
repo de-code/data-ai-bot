@@ -98,6 +98,6 @@ agent:
     - how_to_use_this_tool
     - get_zen_quote
     - search_elife_papers
-    - get_senior_editors
+    # - get_senior_editors
   toolCollections:
     - local_mcp
