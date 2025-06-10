@@ -33,6 +33,7 @@ class ToolCollectionDefinitionsConfigDict(TypedDict):
 class AgentConfigDict(TypedDict):
     tools: Sequence[str]
     toolCollections: NotRequired[Sequence[str]]
+    systemPrompt: NotRequired[str]
 
 
 class AppConfigDict(TypedDict):

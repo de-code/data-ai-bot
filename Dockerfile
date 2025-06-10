@@ -15,7 +15,6 @@ RUN pip install --disable-pip-version-check --no-cache-dir \
     -r requirements.txt \
     -r requirements.dev.txt
 
-COPY data ./data
 COPY data_ai_bot ./data_ai_bot
 COPY config ./config
 
