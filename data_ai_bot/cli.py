@@ -114,7 +114,7 @@ def get_system_prompt() -> str:
 def get_agent_message(
     message_event: SlackMessageEvent
 ) -> str:
-    return f'User query:\n{message_event.text}'.strip() + '\n'
+    return f'{message_event.text}'.strip() + '\n'
 
 
 @dataclass(frozen=True)
