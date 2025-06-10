@@ -128,12 +128,14 @@ class ToolCollectionDefinitionsConfig:
 class AgentConfig:
     tools: Sequence[str]
     tool_collections: Sequence[str]
+    system_prompt: Optional[str] = None
 
     @staticmethod
     def from_dict(agent_config_dict: AgentConfigDict) -> 'AgentConfig':
         return AgentConfig(
             tools=agent_config_dict['tools'],
-            tool_collections=agent_config_dict.get('toolCollections', [])
+            tool_collections=agent_config_dict.get('toolCollections', []),
+            system_prompt=agent_config_dict.get('systemPrompt')
         )
 
 

@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 import logging
 import os
-from pathlib import Path
 import traceback
 from typing import Callable, Optional, Sequence
 
@@ -105,10 +104,6 @@ class SmolAgentsAgentFactory:
             )
             agent.system_prompt = agent.initialize_system_prompt()
         return agent
-
-
-def get_system_prompt() -> str:
-    return Path('data/system-prompt.txt').read_text(encoding='utf-8')
 
 
 def get_agent_message(
@@ -266,7 +261,7 @@ def main():
         agent_factory = SmolAgentsAgentFactory(
             model=model,
             tools=tools,
-            system_prompt=get_system_prompt()
+            system_prompt=app_config.agent.system_prompt
         )
         app = create_bolt_app(
             agent_factory=agent_factory

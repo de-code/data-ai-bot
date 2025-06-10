@@ -176,6 +176,13 @@ class TestAgentConfig:
         })
         assert agent_config.tool_collections == ['tool_collection_1']
 
+    def test_should_load_system_prompt(self):
+        agent_config = AgentConfig.from_dict({
+            **AGENT_CONFIG_DICT_1,
+            'systemPrompt': 'System prompt 1'
+        })
+        assert agent_config.system_prompt == 'System prompt 1'
+
 
 class TestAppConfig:
     def test_should_load_agent(self):
