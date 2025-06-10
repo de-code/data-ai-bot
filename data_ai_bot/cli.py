@@ -88,14 +88,23 @@ def do_step_callback(step_log: smolagents.ActionStep):
 class SmolAgentsAgentFactory:
     model: smolagents.Model
     tools: Sequence[Tool]
+    system_prompt: str | None = None
 
     def __call__(self) -> smolagents.MultiStepAgent:
-        return smolagents.ToolCallingAgent(
+        agent = smolagents.ToolCallingAgent(
             tools=self.tools,
             model=self.model,
             step_callbacks=[do_step_callback],
             max_steps=3
         )
+        if self.system_prompt:
+            agent.prompt_templates['system_prompt'] = (
+                agent.prompt_templates['system_prompt']
+                + '\n\n'
+                + self.system_prompt
+            )
+            agent.system_prompt = agent.initialize_system_prompt()
+        return agent
 
 
 def get_system_prompt() -> str:
@@ -103,21 +112,14 @@ def get_system_prompt() -> str:
 
 
 def get_agent_message(
-    system_prompt: str,
     message_event: SlackMessageEvent
 ) -> str:
-    prompt = system_prompt
-    if message_event.previous_messages:
-        flat_previous_messages = '\n\n'.join(message_event.previous_messages)
-        prompt += f'\n\nPrevious messages:{flat_previous_messages}'
-    prompt += f'\n\nUser query:\n{message_event.text}'
-    return prompt
+    return f'{message_event.text}'.strip() + '\n'
 
 
 @dataclass(frozen=True)
 class SlackChatApp:
     agent_factory: Callable[[], smolagents.MultiStepAgent]
-    system_prompt: str
     slack_app: slack_bolt.App
     echo_message: bool = False
 
@@ -142,9 +144,11 @@ class SlackChatApp:
                 )
             response_message = self.agent_factory().run(
                 get_agent_message(
-                    system_prompt=self.system_prompt,
                     message_event=message_event
-                )
+                ),
+                additional_args={
+                    'previous_messages': message_event.previous_messages
+                }
             )
             LOGGER.info('response_message: %r', response_message)
             response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
@@ -181,7 +185,6 @@ def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
 
 def create_bolt_app(
     agent_factory: Callable[[], smolagents.MultiStepAgent],
-    system_prompt: str,
     max_message_age_in_seconds: int = 600,
     echo_message: bool = False
 ):
@@ -192,7 +195,6 @@ def create_bolt_app(
     )
     chat_app = SlackChatApp(
         agent_factory=agent_factory,
-        system_prompt=system_prompt,
         slack_app=app,
         echo_message=echo_message
     )
@@ -263,11 +265,11 @@ def main():
         LOGGER.info('Tools: %r', tools)
         agent_factory = SmolAgentsAgentFactory(
             model=model,
-            tools=tools
+            tools=tools,
+            system_prompt=get_system_prompt()
         )
         app = create_bolt_app(
-            agent_factory=agent_factory,
-            system_prompt=get_system_prompt()
+            agent_factory=agent_factory
         )
         handler = SocketModeHandler(
             app=app,
