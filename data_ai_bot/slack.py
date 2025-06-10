@@ -24,7 +24,8 @@ def get_slack_message_event_from_event_dict(
     app: slack_bolt.App,
     event: dict
 ) -> SlackMessageEvent:
-    thread_ts = event.get('thread_ts')
+    message = event.get('message', event)
+    thread_ts = message.get('thread_ts')
     previous_message_dict_list: Sequence[dict] = []
     if thread_ts:
         result = app.client.conversations_replies(
@@ -33,10 +34,10 @@ def get_slack_message_event_from_event_dict(
         )
         previous_message_dict_list = cast(Sequence[dict], result.get('messages', []))
     return SlackMessageEvent(
-        user=event['user'],
-        text=event['text'],
-        ts=event['ts'],
-        thread_ts=thread_ts or event['ts'],
+        user=message['user'],
+        text=message['text'],
+        ts=message['ts'],
+        thread_ts=thread_ts or message['ts'],
         channel=event['channel'],
         channel_type=event.get('channel_type'),
         previous_messages=[
