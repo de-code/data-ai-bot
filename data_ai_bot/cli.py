@@ -114,12 +114,7 @@ def get_system_prompt() -> str:
 def get_agent_message(
     message_event: SlackMessageEvent
 ) -> str:
-    prompt = ''
-    if message_event.previous_messages:
-        flat_previous_messages = '\n\n'.join(message_event.previous_messages)
-        prompt += f'\n\nPrevious messages:{flat_previous_messages}'
-    prompt += f'\n\nUser query:\n{message_event.text}'
-    return prompt.strip()
+    return f'User query:\n{message_event.text}'.strip() + '\n'
 
 
 @dataclass(frozen=True)
@@ -150,7 +145,10 @@ class SlackChatApp:
             response_message = self.agent_factory().run(
                 get_agent_message(
                     message_event=message_event
-                )
+                ),
+                additional_args={
+                    'previous_messages': message_event.previous_messages
+                }
             )
             LOGGER.info('response_message: %r', response_message)
             response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
