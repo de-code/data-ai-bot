@@ -90,6 +90,31 @@ class TestGetSlackMessageEventFromEventDict:
         )
         assert message_event.previous_messages == ['previous_text_1']
 
+    def test_should_extract_from_message_changed_event(
+        self,
+        slack_app_mock: MagicMock
+    ):
+        message_event = get_slack_message_event_from_event_dict(
+            app=slack_app_mock,
+            event={
+                'ts': 'ts_1',
+                'channel': 'channel_1',
+                'channel_type': 'channel_type_1',
+                'message': {
+                    'ts': 'ts_2',
+                    'thread_ts': 'thread_ts_1',
+                    'user': 'user_1',
+                    'text': 'text_1'
+                }
+            }
+        )
+        assert message_event.ts == 'ts_2'
+        assert message_event.thread_ts == 'thread_ts_1'
+        assert message_event.channel == 'channel_1'
+        assert message_event.channel_type == 'channel_type_1'
+        assert message_event.user == 'user_1'
+        assert message_event.text == 'text_1'
+
 
 class TestGetSlackMrkdwnForMarkdown:
     def test_should_not_convert_simple_text(self):
