@@ -75,11 +75,11 @@ toolDefinitions:
           start_date:
             type: string
             description: 'The start date to filter by, in YYYY-MM-DD format.'
-            regex: '\d{4}-\d{2}-\d{2}'
+            regex: '\d{4}-\d{2}-\d{2}|'
           end_date:
             type: string
             description: 'The end date to filter by, in YYYY-MM-DD format.'
-            regex: '\d{4}-\d{2}-\d{2}'
+            regex: '\d{4}-\d{2}-\d{2}|'
         url: 'https://api.elifesciences.org/search'
         query_parameters:
           for: '{{ query }}'
