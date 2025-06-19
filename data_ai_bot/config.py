@@ -94,6 +94,7 @@ class ToolDefinitionsConfig:
 class FromMcpConfig:
     name: str
     url: str
+    transport: str
 
     @staticmethod
     def from_dict(
@@ -101,7 +102,8 @@ class FromMcpConfig:
     ) -> 'FromMcpConfig':
         return FromMcpConfig(
             name=from_mcp_config_dict['name'],
-            url=from_mcp_config_dict['url']
+            url=from_mcp_config_dict['url'],
+            transport=from_mcp_config_dict.get('transport', 'streamable-http')
         )
 
 

@@ -114,7 +114,8 @@ toolDefinitions:
 toolCollectionDefinitions:
   fromMcp:
     - name: local_mcp
-      url: 'http://localhost:8080/sse'
+      url: 'http://127.0.0.1:8080/mcp/'
+      transport: streamable-http
 
 agent:
   systemPrompt: |-

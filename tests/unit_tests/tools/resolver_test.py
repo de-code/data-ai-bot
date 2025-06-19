@@ -32,7 +32,8 @@ DEFAULT_TOOL_DEFINITIONS_CONFIG: ToolDefinitionsConfig = ToolDefinitionsConfig(
 
 FROM_MCP_CONFIG_1: FromMcpConfig = FromMcpConfig(
     name='mcp_1',
-    url='http://localhost:8080/sse'
+    url='http://localhost:8080/mcp',
+    transport='streamable-http'
 )
 
 TOOL_COLLECTION_DEFINITIONS_CONFIG_1: ToolCollectionDefinitionsConfig = (

@@ -102,7 +102,6 @@ class SmolAgentsAgentFactory:
                 + '\n\n'
                 + self.system_prompt
             )
-            agent.system_prompt = agent.initialize_system_prompt()
         return agent
 
 
