@@ -152,7 +152,10 @@ class ConfigToolResolver(ToolResolver):
         self,
         from_mcp_config: FromMcpConfig
     ) -> Sequence[Tool]:
-        tool_collection_cm = ToolCollection.from_mcp({'url': from_mcp_config.url})
+        tool_collection_cm = ToolCollection.from_mcp({
+            'url': from_mcp_config.url,
+            'transport': from_mcp_config.transport
+        }, trust_remote_code=True)
         tool_collection = self.exit_stack.enter_context(tool_collection_cm)
         return tool_collection.tools
 

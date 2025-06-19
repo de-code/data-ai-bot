@@ -1,6 +1,6 @@
 services:
     mcp-server:
-        image: ghcr.io/de-code/py-conf-mcp_unstable:main-e113860d-20250430.0848
+        image: ghcr.io/de-code/py-conf-mcp_unstable:main-9b72b7fb-20250619.1443
         environment:
             - CONFIG_FILE=/config/mcp-server.yaml
         volumes:

@@ -24,6 +24,7 @@ class ToolDefinitionsConfigDict(TypedDict):
 class FromMcpConfigDict(TypedDict):
     name: str
     url: str
+    transport: NotRequired[str]
 
 
 class ToolCollectionDefinitionsConfigDict(TypedDict):
