@@ -4,9 +4,13 @@ import pytest
 
 from data_ai_bot.slack import (
     SlackMessageEvent,
+    get_slack_blocks_for_mrkdwn,
     get_slack_message_event_from_event_dict,
     get_slack_mrkdwn_for_markdown
 )
+
+
+TEXT_1 = 'Text 1'
 
 
 MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1 = {
@@ -128,3 +132,14 @@ class TestGetSlackMrkdwnForMarkdown:
 
     def test_should_convert_markdown_link_to_slack_link(self):
         assert get_slack_mrkdwn_for_markdown('[Link Text](Link URL)') == '<Link URL|Link Text>'
+
+
+class TestGetSlackBlocksForMrkdwn:
+    def test_should_convert_simple_message(self):
+        assert get_slack_blocks_for_mrkdwn(TEXT_1) == [{
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': TEXT_1
+            }
+        }]
