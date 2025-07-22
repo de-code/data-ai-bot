@@ -27,6 +27,7 @@ from data_ai_bot.slack import (
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
 from data_ai_bot.tools.resolver import ConfigToolResolver
+from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
 
 
 LOGGER = logging.getLogger(__name__)
@@ -118,6 +119,10 @@ class SlackChatApp:
     echo_message: bool = False
 
     def get_agent_response_message(self, message_event: SlackMessageEvent) -> str:
+        text = message_event.text
+        last_word = text.rsplit(' ')[-1]
+        if last_word == 'TEST_LONG_TEXT':
+            return DUMMY_TEXT_4K
         return self.agent_factory().run(
             get_agent_message(
                 message_event=message_event
