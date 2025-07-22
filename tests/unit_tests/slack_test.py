@@ -1,16 +1,22 @@
-from unittest.mock import MagicMock
+from typing import Iterator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
+import data_ai_bot.slack as slack_module
 from data_ai_bot.slack import (
+    DEFAULT_MAX_BLOCK_LENGTH,
     SlackMessageEvent,
     get_slack_blocks_for_mrkdwn,
     get_slack_message_event_from_event_dict,
-    get_slack_mrkdwn_for_markdown
+    get_slack_mrkdwn_for_markdown,
+    iter_split_mrkdwn
 )
+from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
 
 
 TEXT_1 = 'Text 1'
+TEXT_2 = 'Text 2'
 
 
 MINIMAL_DIRECT_MESSAGE_SLACK_EVENT_DICT_1 = {
@@ -29,6 +35,12 @@ def _slack_client_mock() -> MagicMock:
 @pytest.fixture(name='conversations_replies_mock')
 def _conversations_replies_mock(slack_client_mock: MagicMock) -> MagicMock:
     return slack_client_mock.conversations_replies
+
+
+@pytest.fixture(name='iter_split_mrkdwn_mock')
+def _iter_split_mrkdwn_mock() -> Iterator[MagicMock]:
+    with patch.object(slack_module, 'iter_split_mrkdwn') as mock:
+        yield mock
 
 
 @pytest.fixture(name='slack_app_mock')
@@ -134,6 +146,14 @@ class TestGetSlackMrkdwnForMarkdown:
         assert get_slack_mrkdwn_for_markdown('[Link Text](Link URL)') == '<Link URL|Link Text>'
 
 
+class TestIterSplitMrkdwn:
+    def test_should_split_at_word_boundaries(self):
+        assert list(iter_split_mrkdwn('12345 12345', max_length=8)) == [
+            '12345',
+            '12345'
+        ]
+
+
 class TestGetSlackBlocksForMrkdwn:
     def test_should_convert_simple_message(self):
         assert get_slack_blocks_for_mrkdwn(TEXT_1) == [{
@@ -143,3 +163,26 @@ class TestGetSlackBlocksForMrkdwn:
                 'text': TEXT_1
             }
         }]
+
+    def test_should_split_long_text_into_separate_blocks(
+        self,
+        iter_split_mrkdwn_mock: MagicMock
+    ):
+        iter_split_mrkdwn_mock.return_value = iter([TEXT_1, TEXT_2])
+        assert get_slack_blocks_for_mrkdwn(f'{TEXT_1} {TEXT_2}') == [{
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': TEXT_1
+            }
+        }, {
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': TEXT_2
+            }
+        }]
+        iter_split_mrkdwn_mock.assert_called_with(
+            f'{TEXT_1} {TEXT_2}',
+            max_length=DEFAULT_MAX_BLOCK_LENGTH
+        )

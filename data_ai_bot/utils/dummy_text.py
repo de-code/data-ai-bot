@@ -10,7 +10,7 @@ DUMMY_TEXT_1 = textwrap.dedent(
     voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat
     non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
     '''
-).replace('\n', ' ')
+).strip().replace('\n', ' ')
 
 
 DUMMY_TEXT_4K = '\n\n'.join([DUMMY_TEXT_1] * 9)

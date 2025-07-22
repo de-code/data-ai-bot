@@ -1,12 +1,16 @@
 
 
 from dataclasses import dataclass
+import textwrap
 import time
-from typing import Optional, Sequence, cast
+from typing import Iterable, Optional, Sequence, cast
 
 from markdown_to_mrkdwn import SlackMarkdownConverter  # type: ignore
 
 import slack_bolt
+
+
+DEFAULT_MAX_BLOCK_LENGTH = 3000
 
 
 @dataclass(frozen=True)
@@ -58,11 +62,26 @@ def get_slack_mrkdwn_for_markdown(markdown: str) -> str:
     return SlackMarkdownConverter().convert(markdown)
 
 
-def get_slack_blocks_for_mrkdwn(mrkdwn: str) -> Sequence[dict]:
-    return [{
-        'type': 'section',
-        'text': {
-            'type': 'mrkdwn',
-            'text': mrkdwn
+def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
+    return iter(textwrap.wrap(
+        mrkdwn,
+        width=max_length,
+        break_long_words=False,
+        replace_whitespace=False
+    ))
+
+
+def get_slack_blocks_for_mrkdwn(
+    mrkdwn: str,
+    max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
+) -> Sequence[dict]:
+    return [
+        {
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': block_mrkdwn
+            }
         }
-    }]
+        for block_mrkdwn in iter_split_mrkdwn(mrkdwn, max_length=max_block_length)
+    ]
