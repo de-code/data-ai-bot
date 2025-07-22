@@ -117,6 +117,16 @@ class SlackChatApp:
     slack_app: slack_bolt.App
     echo_message: bool = False
 
+    def get_agent_response_message(self, message_event: SlackMessageEvent) -> str:
+        return self.agent_factory().run(
+            get_agent_message(
+                message_event=message_event
+            ),
+            additional_args={
+                'previous_messages': message_event.previous_messages
+            }
+        )
+
     def handle_message(self, event: dict, say: Say):
         try:
             message_event = get_slack_message_event_from_event_dict(
@@ -136,13 +146,8 @@ class SlackChatApp:
                     f'Hi <@{message_event.user}>! You said: {message_event.text}',
                     thread_ts=message_event.thread_ts
                 )
-            response_message = self.agent_factory().run(
-                get_agent_message(
-                    message_event=message_event
-                ),
-                additional_args={
-                    'previous_messages': message_event.previous_messages
-                }
+            response_message = self.get_agent_response_message(
+                message_event=message_event
             )
             LOGGER.info('response_message: %r', response_message)
             response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
