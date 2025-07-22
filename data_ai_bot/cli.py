@@ -22,6 +22,7 @@ from data_ai_bot.config import (
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_message_age_in_seconds_from_event_dict,
+    get_slack_blocks_for_mrkdwn,
     get_slack_message_event_from_event_dict,
     get_slack_mrkdwn_for_markdown
 )
@@ -163,13 +164,9 @@ class SlackChatApp:
             self.slack_app.client.chat_postMessage(
                 text=response_message,
                 mrkdwn=True,
-                blocks=[{
-                    'type': 'section',
-                    'text': {
-                        'type': 'mrkdwn',
-                        'text': response_message_mrkdwn
-                    }
-                }],
+                blocks=get_slack_blocks_for_mrkdwn(
+                    response_message_mrkdwn
+                ),
                 channel=message_event.channel,
                 thread_ts=message_event.thread_ts
             )

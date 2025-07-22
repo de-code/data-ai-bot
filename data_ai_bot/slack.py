@@ -56,3 +56,13 @@ def get_message_age_in_seconds_from_event_dict(
 
 def get_slack_mrkdwn_for_markdown(markdown: str) -> str:
     return SlackMarkdownConverter().convert(markdown)
+
+
+def get_slack_blocks_for_mrkdwn(mrkdwn: str) -> Sequence[dict]:
+    return [{
+        'type': 'section',
+        'text': {
+            'type': 'mrkdwn',
+            'text': mrkdwn
+        }
+    }]
