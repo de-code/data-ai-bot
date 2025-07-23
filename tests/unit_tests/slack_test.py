@@ -8,6 +8,7 @@ import data_ai_bot.slack as slack_module
 from data_ai_bot.slack import (
     DEFAULT_MAX_BLOCK_LENGTH,
     SlackMessageEvent,
+    get_slack_blocks_and_files_for_mrkdwn,
     get_slack_blocks_for_mrkdwn,
     get_slack_message_event_from_event_dict,
     get_slack_mrkdwn_for_markdown,
@@ -258,3 +259,28 @@ class TestGetSlackBlocksForMrkdwn:
             f'{TEXT_1} {TEXT_2}',
             max_length=DEFAULT_MAX_BLOCK_LENGTH
         )
+
+
+class TestGetSlackBlocksAndFilesForMrkdwn:
+    def test_should_convert_simple_message_without_files(self):
+        assert get_slack_blocks_and_files_for_mrkdwn(TEXT_1) == (
+            get_slack_blocks_for_mrkdwn(TEXT_1),
+            []
+        )
+
+    def test_should_convert_long_code_block_to_file(self):
+        blocks, files = get_slack_blocks_and_files_for_mrkdwn(
+            '```python\nprint("hello")\nprint("world")\n```',
+            max_block_length=10
+        )
+        assert blocks == [{
+            'type': 'section',
+            'text': {
+                'type': 'mrkdwn',
+                'text': 'See file_1.py'
+            }
+        }]
+        assert files == [{
+            'filename': 'file_1.py',
+            'content': b'print("hello")\nprint("world")\n'
+        }]

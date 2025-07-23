@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from io import BytesIO
 import logging
 import os
 import traceback
@@ -22,7 +23,7 @@ from data_ai_bot.config import (
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_message_age_in_seconds_from_event_dict,
-    get_slack_blocks_for_mrkdwn,
+    get_slack_blocks_and_files_for_mrkdwn,
     get_slack_message_event_from_event_dict,
     get_slack_mrkdwn_for_markdown
 )
@@ -163,15 +164,31 @@ class SlackChatApp:
             )
             LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
             LOGGER.info('responded to event: %r', event)
+            blocks, files = get_slack_blocks_and_files_for_mrkdwn(
+                response_message_mrkdwn
+            )
             self.slack_app.client.chat_postMessage(
                 text=response_message,
                 mrkdwn=True,
-                blocks=get_slack_blocks_for_mrkdwn(
-                    response_message_mrkdwn
-                ),
+                blocks=blocks,
                 channel=message_event.channel,
                 thread_ts=message_event.thread_ts
             )
+            if files:
+                file_uploads = [
+                    {
+                        'filename': file_dict['filename'],
+                        'title': file_dict['filename'],
+                        'file': BytesIO(file_dict['content'])
+                    }
+                    for file_dict in files
+                ]
+                LOGGER.info('file_uploads: %r', file_uploads)
+                self.slack_app.client.files_upload_v2(
+                    channel=message_event.channel,
+                    thread_ts=message_event.thread_ts,
+                    file_uploads=file_uploads
+                )
         except Exception as exc:  # pylint: disable=broad-exception-caught
             LOGGER.warning('Caught exception: %r', exc, exc_info=True)
             say(

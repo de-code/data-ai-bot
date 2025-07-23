@@ -5,7 +5,7 @@ import logging
 import re
 import textwrap
 import time
-from typing import Iterable, Optional, Sequence, cast
+from typing import Iterable, Mapping, Optional, Sequence, TypedDict, cast
 
 from markdown_to_mrkdwn import SlackMarkdownConverter  # type: ignore
 
@@ -19,7 +19,7 @@ DEFAULT_MAX_BLOCK_LENGTH = 3000
 
 
 CODE_BLOCK_RE = re.compile(
-    r'(```(?:[^\n]*)\n.*?\n```)',
+    r'(```([^\n]*)\n(.*?\n)```)',
     re.DOTALL
 )
 
@@ -176,3 +176,71 @@ def get_slack_blocks_for_mrkdwn(
         }
         for block_mrkdwn in iter_split_mrkdwn(mrkdwn, max_length=max_block_length)
     ]
+
+
+class FileTypedDict(TypedDict):
+    filename: str
+    content: bytes
+
+
+FILE_EXT_BY_LANGUAGE: Mapping[str, str] = {
+    'python': 'py',
+    'text': 'txt'
+}
+
+
+def get_file_dict_from_code_block(
+    code_block: str,
+    file_no: int
+) -> FileTypedDict:
+    match = re.match(CODE_BLOCK_RE, code_block)
+    if match is None:
+        raise ValueError(f'Invalid code block: {repr(code_block)}')
+    code_language = match.group(2)
+    code_content = match.group(3)
+    file_ext = FILE_EXT_BY_LANGUAGE.get(code_language or 'text', code_language)
+    file_dict: FileTypedDict = {
+        'filename': f'file_{file_no}.{file_ext}',
+        'content': code_content.encode('utf-8')
+    }
+    return file_dict
+
+
+def get_replacement_block_and_file_for_too_long_code_block(
+    too_long_code_block: str,
+    file_no: int
+) -> tuple[dict, FileTypedDict]:
+    file_dict: FileTypedDict = get_file_dict_from_code_block(
+        too_long_code_block,
+        file_no=file_no
+    )
+    filename = file_dict['filename']
+    block = {
+        'type': 'section',
+        'text': {
+            'type': 'mrkdwn',
+            'text': f'See {filename}'
+        }
+    }
+    return block, file_dict
+
+
+def get_slack_blocks_and_files_for_mrkdwn(
+    mrkdwn: str,
+    max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
+) -> tuple[Sequence[dict], Sequence[FileTypedDict]]:
+    candidate_blocks = get_slack_blocks_for_mrkdwn(mrkdwn, max_block_length=max_block_length)
+    files: list[FileTypedDict] = []
+    final_blocks = []
+    for block in candidate_blocks:
+        block_text = block['text']['text']
+        if len(block_text) >= max_block_length:
+            final_block, file = get_replacement_block_and_file_for_too_long_code_block(
+                block_text,
+                1 + len(files)
+            )
+            final_blocks.append(final_block)
+            files.append(file)
+        else:
+            final_blocks.append(block)
+    return final_blocks, files
