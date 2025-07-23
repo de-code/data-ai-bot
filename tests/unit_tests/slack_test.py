@@ -153,6 +153,17 @@ class TestIterSplitMrkdwn:
             '12345'
         ]
 
+    def test_not_should_split_lines_if_within_max_length(self):
+        assert list(iter_split_mrkdwn('12345\n12345 12345', max_length=100)) == [
+            '12345\n12345 12345'
+        ]
+
+    def test_should_split_at_line_boundaries_if_necessary(self):
+        assert list(iter_split_mrkdwn('12345\n12345 12345', max_length=12)) == [
+            '12345',
+            '12345 12345'
+        ]
+
 
 class TestGetSlackBlocksForMrkdwn:
     def test_should_convert_simple_message(self):

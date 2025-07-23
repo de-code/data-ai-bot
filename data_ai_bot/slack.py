@@ -62,13 +62,35 @@ def get_slack_mrkdwn_for_markdown(markdown: str) -> str:
     return SlackMarkdownConverter().convert(markdown)
 
 
+def iter_split_long_line(text: str, max_length: int) -> Iterable[str]:
+    if len(text) <= max_length:
+        yield text
+    else:
+        yield from textwrap.wrap(
+            text,
+            width=max_length,
+            break_long_words=False,
+            replace_whitespace=False
+        )
+
+
 def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
-    return iter(textwrap.wrap(
-        mrkdwn,
-        width=max_length,
-        break_long_words=False,
-        replace_whitespace=False
-    ))
+    if len(mrkdwn) <= max_length:
+        yield mrkdwn
+        return
+
+    lines = mrkdwn.split('\n')
+    chunk = ''
+    for line in lines:
+        if not chunk:
+            chunk = line
+        elif len(chunk) + 1 + len(line) <= max_length:
+            chunk += '\n' + line
+        else:
+            yield from iter_split_long_line(chunk, max_length)
+            chunk = line
+    if chunk:
+        yield from iter_split_long_line(chunk, max_length)
 
 
 def get_slack_blocks_for_mrkdwn(
