@@ -109,8 +109,11 @@ def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
         else:
             if chunk:
                 yield chunk
-            yield from iter_split_long_paragraph(para, max_length)
-            chunk = ''
+            if len(para) > max_length:
+                yield from iter_split_long_paragraph(para, max_length)
+                chunk = ''
+            else:
+                chunk = para
     if chunk:
         yield chunk
 
