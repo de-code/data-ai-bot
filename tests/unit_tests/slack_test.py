@@ -1,3 +1,4 @@
+import logging
 from typing import Iterator
 from unittest.mock import MagicMock, patch
 
@@ -10,8 +11,12 @@ from data_ai_bot.slack import (
     get_slack_blocks_for_mrkdwn,
     get_slack_message_event_from_event_dict,
     get_slack_mrkdwn_for_markdown,
-    iter_split_mrkdwn
+    iter_split_mrkdwn,
+    iter_split_mrkdwn_segments
 )
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 TEXT_1 = 'Text 1'
@@ -145,6 +150,23 @@ class TestGetSlackMrkdwnForMarkdown:
         assert get_slack_mrkdwn_for_markdown('[Link Text](Link URL)') == '<Link URL|Link Text>'
 
 
+class TestIterSplitMrkdwnSegments:
+    def test_should_identify_code_chunks(self):
+        mrkdwn = (
+            'First paragraph\n'
+            '```python\nprint("hello")\nprint("world")\n```'
+            'Second paragraph'
+        )
+        LOGGER.debug('mrkdwn: %r', mrkdwn)
+        result = list(iter_split_mrkdwn_segments(mrkdwn))
+        LOGGER.debug('result: %r', result)
+        assert result == [
+            (False, 'First paragraph\n'),
+            (True, '```python\nprint("hello")\nprint("world")\n```'),
+            (False, 'Second paragraph')
+        ]
+
+
 class TestIterSplitMrkdwn:
     def test_should_split_at_word_boundaries(self):
         assert list(iter_split_mrkdwn('12345 12345', max_length=8)) == [
@@ -186,6 +208,21 @@ class TestIterSplitMrkdwn:
         )) == [
             '12345\n12345',
             '12345\n\n12345'
+        ]
+
+    def test_should_not_split_code_blocks_even_if_longer_than_max_length(self):
+        mrkdwn = (
+            'First paragraph\n'
+            '```python\nprint("hello")\nprint("world")\n```'
+            'Second paragraph'
+        )
+        LOGGER.debug('mrkdwn: %r', mrkdwn)
+        result = list(iter_split_mrkdwn(mrkdwn, max_length=20))
+        LOGGER.debug('result: %r', result)
+        assert result == [
+            'First paragraph',
+            '```python\nprint("hello")\nprint("world")\n```',
+            'Second paragraph'
         ]
 
 

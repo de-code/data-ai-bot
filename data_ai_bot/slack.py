@@ -1,6 +1,8 @@
 
 
 from dataclasses import dataclass
+import logging
+import re
 import textwrap
 import time
 from typing import Iterable, Optional, Sequence, cast
@@ -10,7 +12,16 @@ from markdown_to_mrkdwn import SlackMarkdownConverter  # type: ignore
 import slack_bolt
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 DEFAULT_MAX_BLOCK_LENGTH = 3000
+
+
+CODE_BLOCK_RE = re.compile(
+    r'(```(?:[^\n]*)\n.*?\n```)',
+    re.DOTALL
+)
 
 
 @dataclass(frozen=True)
@@ -94,12 +105,12 @@ def iter_split_long_paragraph(paragraph: str, max_length: int) -> Iterable[str]:
         yield chunk
 
 
-def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
-    if len(mrkdwn) <= max_length:
-        yield mrkdwn
+def iter_split_noncode_mrkdwn(noncode: str, max_length: int) -> Iterable[str]:
+    # Greedy chunk at paragraph level, fallback to lines, fallback to words
+    if len(noncode) <= max_length:
+        yield noncode
         return
-
-    paragraphs = mrkdwn.split('\n\n')
+    paragraphs = noncode.split('\n\n')
     chunk = ''
     for para in paragraphs:
         sep = '\n\n' if chunk else ''
@@ -116,6 +127,39 @@ def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
                 chunk = para
     if chunk:
         yield chunk
+
+
+def iter_split_mrkdwn_segments(mrkdwn: str) -> Iterable[tuple[bool, str]]:
+    '''
+    Yield tuples: (is_code_block: bool, content: str)
+    '''
+    pos = 0
+    for match in CODE_BLOCK_RE.finditer(mrkdwn):
+        LOGGER.debug('match: %r', match)
+        start, end = match.span()
+        if start > pos:
+            yield (False, mrkdwn[pos:start])
+        yield (True, match.group(0))
+        pos = end
+    if pos < len(mrkdwn):
+        yield (False, mrkdwn[pos:])
+
+
+def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
+    '''
+    Yields chunks of mrkdwn text, never splitting code blocks.
+    '''
+    current_chunk = ''
+    for is_code, segment in iter_split_mrkdwn_segments(mrkdwn):
+        if is_code:
+            if current_chunk:
+                yield from iter_split_noncode_mrkdwn(current_chunk, max_length)
+                current_chunk = ''
+            yield segment
+        else:
+            current_chunk += segment.rstrip()
+    if current_chunk:
+        yield from iter_split_noncode_mrkdwn(current_chunk, max_length)
 
 
 def get_slack_blocks_for_mrkdwn(
