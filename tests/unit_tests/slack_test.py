@@ -12,7 +12,6 @@ from data_ai_bot.slack import (
     get_slack_mrkdwn_for_markdown,
     iter_split_mrkdwn
 )
-from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
 
 
 TEXT_1 = 'Text 1'
@@ -169,6 +168,7 @@ class TestIterSplitMrkdwn:
             '12345\n12345',
             '12345'
         ]
+
 
 class TestGetSlackBlocksForMrkdwn:
     def test_should_convert_simple_message(self):

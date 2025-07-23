@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 import pytest
 
 from data_ai_bot.config import (
@@ -58,7 +59,7 @@ class TestConfigToolResolver:
 
     def test_should_resolve_get_joke(self):
         tool = DEFAULT_CONFIG_TOOL_RESOLVER.get_tool_by_name('get_joke')
-        assert tool == get_joke
+        assert tool == get_joke  # pylint: disable=comparison-with-callable
 
     def test_should_resolve_get_docmap_by_manuscript_id(self):
         tool = DEFAULT_CONFIG_TOOL_RESOLVER.get_tool_by_name('get_docmap_by_manuscript_id')
@@ -99,7 +100,7 @@ class TestConfigToolResolver:
             )
         )
         tool = resolver.get_tool_by_name('new_name')
-        assert tool == get_joke
+        assert tool == get_joke  # pylint: disable=comparison-with-callable
         assert tool.name == 'new_name'
         assert tool.description == 'New description'
 
