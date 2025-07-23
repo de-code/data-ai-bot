@@ -124,6 +124,8 @@ class SlackChatApp:
         last_word = text.rsplit(' ')[-1]
         if last_word == 'TEST_LONG_TEXT':
             return DUMMY_TEXT_4K
+        if last_word == 'TEST_LONG_CODE':
+            return f'```\n{DUMMY_TEXT_4K}\n```'
         return self.agent_factory().run(
             get_agent_message(
                 message_event=message_event
