@@ -74,23 +74,45 @@ def iter_split_long_line(text: str, max_length: int) -> Iterable[str]:
         )
 
 
+def iter_split_long_paragraph(paragraph: str, max_length: int) -> Iterable[str]:
+    lines = paragraph.split('\n')
+    chunk = ''
+    for line in lines:
+        sep = '\n' if chunk else ''
+        new_chunk = chunk + sep + line if chunk else line
+        if len(new_chunk) <= max_length:
+            chunk = new_chunk
+        else:
+            if chunk:
+                yield chunk
+            if len(line) <= max_length:
+                chunk = line
+            else:
+                yield from iter_split_long_line(line, max_length)
+                chunk = ''
+    if chunk:
+        yield chunk
+
+
 def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
     if len(mrkdwn) <= max_length:
         yield mrkdwn
         return
 
-    lines = mrkdwn.split('\n')
+    paragraphs = mrkdwn.split('\n\n')
     chunk = ''
-    for line in lines:
-        if not chunk:
-            chunk = line
-        elif len(chunk) + 1 + len(line) <= max_length:
-            chunk += '\n' + line
+    for para in paragraphs:
+        sep = '\n\n' if chunk else ''
+        new_chunk = chunk + sep + para if chunk else para
+        if len(new_chunk) <= max_length:
+            chunk = new_chunk
         else:
-            yield from iter_split_long_line(chunk, max_length)
-            chunk = line
+            if chunk:
+                yield chunk
+            yield from iter_split_long_paragraph(para, max_length)
+            chunk = ''
     if chunk:
-        yield from iter_split_long_line(chunk, max_length)
+        yield chunk
 
 
 def get_slack_blocks_for_mrkdwn(

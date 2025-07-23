@@ -164,6 +164,11 @@ class TestIterSplitMrkdwn:
             '12345 12345'
         ]
 
+    def test_should_prefer_splitting_at_paragraph_boundaries_if_necessary(self):
+        assert list(iter_split_mrkdwn('12345\n12345\n\n12345', max_length=12)) == [
+            '12345\n12345',
+            '12345'
+        ]
 
 class TestGetSlackBlocksForMrkdwn:
     def test_should_convert_simple_message(self):
