@@ -84,16 +84,16 @@ build:
 	$(DOCKER_COMPOSE) build
 
 flake8:
-	$(DOCKER_COMPOSE) run --rm data-ai-bot tests \
-		python3 -m flake8 data_ai_bot
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m flake8 data_ai_bot tests
 
 pylint:
-	$(DOCKER_COMPOSE) run --rm data-ai-bot tests \
-		python3 -m pylint data_ai_bot
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m pylint data_ai_bot tests
 
 mypy:
-	$(DOCKER_COMPOSE) run --rm data-ai-bot tests \
-		python3 -m mypy --check-untyped-defs data_ai_bot
+	$(DOCKER_COMPOSE) run --rm data-ai-bot \
+		python3 -m mypy --check-untyped-defs data_ai_bot tests
 
 lint: flake8 pylint mypy
 
