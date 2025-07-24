@@ -34,6 +34,17 @@ class BlockTypedDict(TypedDict):
     text: BlockTextTypedDict
 
 
+class FileTypedDict(TypedDict):
+    filename: str
+    content: bytes
+
+
+FILE_EXT_BY_LANGUAGE: Mapping[str, str] = {
+    'python': 'py',
+    'text': 'txt'
+}
+
+
 @dataclass(frozen=True)
 class SlackMessageEvent:
     user: str
@@ -186,17 +197,6 @@ def get_slack_blocks_for_mrkdwn(
         }
         for block_mrkdwn in iter_split_mrkdwn(mrkdwn, max_length=max_block_length)
     ]
-
-
-class FileTypedDict(TypedDict):
-    filename: str
-    content: bytes
-
-
-FILE_EXT_BY_LANGUAGE: Mapping[str, str] = {
-    'python': 'py',
-    'text': 'txt'
-}
 
 
 def get_file_dict_from_code_block(
