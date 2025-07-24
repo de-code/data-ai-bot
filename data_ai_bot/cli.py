@@ -3,7 +3,7 @@ from io import BytesIO
 import logging
 import os
 import traceback
-from typing import Callable, Optional, Sequence
+from typing import Callable, Optional, Sequence, cast
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -170,7 +170,7 @@ class SlackChatApp:
             self.slack_app.client.chat_postMessage(
                 text=response_message,
                 mrkdwn=True,
-                blocks=blocks,
+                blocks=cast(Sequence[dict], blocks),
                 channel=message_event.channel,
                 thread_ts=message_event.thread_ts
             )

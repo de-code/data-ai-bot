@@ -24,6 +24,16 @@ CODE_BLOCK_RE = re.compile(
 )
 
 
+class BlockTextTypedDict(TypedDict):
+    type: str  # e.g. 'mrkdwn'
+    text: str
+
+
+class BlockTypedDict(TypedDict):
+    type: str  # e.g. 'section'
+    text: BlockTextTypedDict
+
+
 @dataclass(frozen=True)
 class SlackMessageEvent:
     user: str
@@ -165,7 +175,7 @@ def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
 def get_slack_blocks_for_mrkdwn(
     mrkdwn: str,
     max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
-) -> Sequence[dict]:
+) -> Sequence[BlockTypedDict]:
     return [
         {
             'type': 'section',
@@ -209,13 +219,13 @@ def get_file_dict_from_code_block(
 def get_replacement_block_and_file_for_too_long_code_block(
     too_long_code_block: str,
     file_no: int
-) -> tuple[dict, FileTypedDict]:
+) -> tuple[BlockTypedDict, FileTypedDict]:
     file_dict: FileTypedDict = get_file_dict_from_code_block(
         too_long_code_block,
         file_no=file_no
     )
     filename = file_dict['filename']
-    block = {
+    block: BlockTypedDict = {
         'type': 'section',
         'text': {
             'type': 'mrkdwn',
@@ -228,7 +238,7 @@ def get_replacement_block_and_file_for_too_long_code_block(
 def get_slack_blocks_and_files_for_mrkdwn(
     mrkdwn: str,
     max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
-) -> tuple[Sequence[dict], Sequence[FileTypedDict]]:
+) -> tuple[Sequence[BlockTypedDict], Sequence[FileTypedDict]]:
     candidate_blocks = get_slack_blocks_for_mrkdwn(mrkdwn, max_block_length=max_block_length)
     files: list[FileTypedDict] = []
     final_blocks = []
