@@ -43,13 +43,13 @@ dev-venv: venv-create dev-install
 
 
 dev-flake8:
-	$(PYTHON) -m flake8 data_ai_bot
+	$(PYTHON) -m flake8 data_ai_bot tests
 
 dev-pylint:
-	$(PYTHON) -m pylint data_ai_bot
+	$(PYTHON) -m pylint data_ai_bot tests
 
 dev-mypy:
-	$(PYTHON) -m mypy --check-untyped-defs data_ai_bot
+	$(PYTHON) -m mypy --check-untyped-defs data_ai_bot tests
 
 dev-lint: dev-flake8 dev-pylint dev-mypy
 
@@ -85,15 +85,15 @@ build:
 
 flake8:
 	$(DOCKER_COMPOSE) run --rm data-ai-bot \
-		python3 -m flake8 data_ai_bot
+		python3 -m flake8 data_ai_bot tests
 
 pylint:
 	$(DOCKER_COMPOSE) run --rm data-ai-bot \
-		python3 -m pylint data_ai_bot
+		python3 -m pylint data_ai_bot tests
 
 mypy:
 	$(DOCKER_COMPOSE) run --rm data-ai-bot \
-		python3 -m mypy --check-untyped-defs data_ai_bot
+		python3 -m mypy --check-untyped-defs data_ai_bot tests
 
 lint: flake8 pylint mypy
 
