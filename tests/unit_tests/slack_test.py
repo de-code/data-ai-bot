@@ -277,7 +277,7 @@ class TestGetSlackBlocksAndFilesForMrkdwn:
             'type': 'section',
             'text': {
                 'type': 'mrkdwn',
-                'text': 'See file_1.py'
+                'text': 'See `file_1.py`'
             }
         }]
         assert files == [{

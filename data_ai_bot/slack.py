@@ -229,7 +229,7 @@ def get_replacement_block_and_file_for_too_long_code_block(
         'type': 'section',
         'text': {
             'type': 'mrkdwn',
-            'text': f'See {filename}'
+            'text': f'See `{filename}`'
         }
     }
     return block, file_dict
