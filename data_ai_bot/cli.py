@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Callable, Optional
+from typing import Optional
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -73,7 +73,7 @@ def get_model(
 
 
 def create_bolt_app(
-    agent_factory: Callable[[], smolagents.MultiStepAgent],
+    agent_factory: SmolAgentsAgentFactory,
     max_message_age_in_seconds: int = 600,
     echo_message: bool = False
 ):

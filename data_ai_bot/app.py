@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from io import BytesIO
 import logging
-from typing import Callable, Sequence, cast
+from typing import Sequence, cast
 
 import slack_bolt
 from slack_bolt.context.say import Say
 
-import smolagents  # type: ignore
-
+from data_ai_bot.agent_factory import SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
     SlackMessageEvent,
@@ -29,7 +28,7 @@ def get_agent_message(
 
 @dataclass(frozen=True)
 class SlackChatApp:
-    agent_factory: Callable[[], smolagents.MultiStepAgent]
+    agent_factory: SmolAgentsAgentFactory
     slack_app: slack_bolt.App
     echo_message: bool = False
 

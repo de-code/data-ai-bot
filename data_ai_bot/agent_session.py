@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from typing import Callable, Sequence
+from typing import Sequence
 
-import smolagents  # type: ignore
+from data_ai_bot.agent_factory import SmolAgentsAgentFactory  # type: ignore
 
 
 @dataclass(frozen=True)
@@ -11,7 +11,7 @@ class AgentResponse:
 
 @dataclass(frozen=True)
 class SmolAgentsAgentSession:
-    agent_factory: Callable[[], smolagents.MultiStepAgent]
+    agent_factory: SmolAgentsAgentFactory
 
     def run(
         self,
