@@ -8,6 +8,7 @@ from slack_bolt.context.say import Say
 
 import smolagents  # type: ignore
 
+from data_ai_bot.agent_session import AgentSession
 from data_ai_bot.slack import (
     SlackMessageEvent,
     get_slack_blocks_and_files_for_mrkdwn,
@@ -39,14 +40,13 @@ class SlackChatApp:
             return DUMMY_TEXT_4K
         if last_word == 'TEST_LONG_CODE':
             return f'```\n{DUMMY_TEXT_4K}\n```'
-        return self.agent_factory().run(
-            get_agent_message(
+        agent_response = AgentSession(self.agent_factory()).run(
+            message=get_agent_message(
                 message_event=message_event
             ),
-            additional_args={
-                'previous_messages': message_event.previous_messages
-            }
+            previous_messages=message_event.previous_messages
         )
+        return agent_response.text
 
     def handle_message(self, event: dict, say: Say):
         try:
