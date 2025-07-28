@@ -10,7 +10,7 @@ class AgentResponse:
 
 
 @dataclass(frozen=True)
-class AgentSession:
+class SmolAgentsAgentSession:
     agent_factory: Callable[[], smolagents.MultiStepAgent]
 
     def run(
