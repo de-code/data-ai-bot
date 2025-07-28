@@ -1,9 +1,6 @@
-from dataclasses import dataclass
-from io import BytesIO
 import logging
 import os
-import traceback
-from typing import Callable, Optional, Sequence, cast
+from typing import Callable, Optional
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -12,8 +9,9 @@ from slack_bolt.context.say import Say
 from cachetools import TTLCache  # type: ignore
 
 import smolagents  # type: ignore
-from smolagents import Tool
 
+from data_ai_bot.agent_factory import SmolAgentsAgentFactory, check_agent_factory
+from data_ai_bot.app import SlackChatApp
 from data_ai_bot.config import (
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
@@ -21,15 +19,10 @@ from data_ai_bot.config import (
     load_app_config
 )
 from data_ai_bot.slack import (
-    SlackMessageEvent,
-    get_message_age_in_seconds_from_event_dict,
-    get_slack_blocks_and_files_for_mrkdwn,
-    get_slack_message_event_from_event_dict,
-    get_slack_mrkdwn_for_markdown
+    get_message_age_in_seconds_from_event_dict
 )
 from data_ai_bot.telemetry import configure_otlp_if_enabled
 from data_ai_bot.tools.resolver import ConfigToolResolver
-from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
 
 
 LOGGER = logging.getLogger(__name__)
@@ -77,130 +70,6 @@ def get_model(
         api_key=api_key,
         temperature=temperature
     )
-
-
-def do_step_callback(step_log: smolagents.ActionStep):
-    LOGGER.info('step_log: %r', step_log)
-    if step_log.error:
-        stacktrace_str = '\n'.join(traceback.format_exception(step_log.error))
-        LOGGER.warning('Caught error: %s', stacktrace_str)
-
-
-@dataclass(frozen=True)
-class SmolAgentsAgentFactory:
-    model: smolagents.Model
-    tools: Sequence[Tool]
-    system_prompt: str | None = None
-
-    def __call__(self) -> smolagents.MultiStepAgent:
-        agent = smolagents.ToolCallingAgent(
-            tools=self.tools,
-            model=self.model,
-            step_callbacks=[do_step_callback],
-            max_steps=3
-        )
-        if self.system_prompt:
-            agent.prompt_templates['system_prompt'] = (
-                agent.prompt_templates['system_prompt']
-                + '\n\n'
-                + self.system_prompt
-            )
-        return agent
-
-
-def get_agent_message(
-    message_event: SlackMessageEvent
-) -> str:
-    return f'{message_event.text}'.strip() + '\n'
-
-
-@dataclass(frozen=True)
-class SlackChatApp:
-    agent_factory: Callable[[], smolagents.MultiStepAgent]
-    slack_app: slack_bolt.App
-    echo_message: bool = False
-
-    def get_agent_response_message(self, message_event: SlackMessageEvent) -> str:
-        text = message_event.text
-        last_word = text.rsplit(' ')[-1]
-        if last_word == 'TEST_LONG_TEXT':
-            return DUMMY_TEXT_4K
-        if last_word == 'TEST_LONG_CODE':
-            return f'```\n{DUMMY_TEXT_4K}\n```'
-        return self.agent_factory().run(
-            get_agent_message(
-                message_event=message_event
-            ),
-            additional_args={
-                'previous_messages': message_event.previous_messages
-            }
-        )
-
-    def handle_message(self, event: dict, say: Say):
-        try:
-            message_event = get_slack_message_event_from_event_dict(
-                app=self.slack_app,
-                event=event
-            )
-            LOGGER.info('message_event: %r', message_event)
-
-            self.slack_app.client.assistant_threads_setStatus(
-                channel_id=message_event.channel,
-                thread_ts=message_event.thread_ts,
-                status=f'Processing request: {message_event.text}'
-            )
-
-            if self.echo_message:
-                say(
-                    f'Hi <@{message_event.user}>! You said: {message_event.text}',
-                    thread_ts=message_event.thread_ts
-                )
-            response_message = self.get_agent_response_message(
-                message_event=message_event
-            )
-            LOGGER.info('response_message: %r', response_message)
-            response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
-                response_message
-            )
-            LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
-            LOGGER.info('responded to event: %r', event)
-            blocks, files = get_slack_blocks_and_files_for_mrkdwn(
-                response_message_mrkdwn
-            )
-            self.slack_app.client.chat_postMessage(
-                text=response_message,
-                mrkdwn=True,
-                blocks=cast(Sequence[dict], blocks),
-                channel=message_event.channel,
-                thread_ts=message_event.thread_ts
-            )
-            if files:
-                file_uploads = [
-                    {
-                        'filename': file_dict['filename'],
-                        'title': file_dict['filename'],
-                        'file': BytesIO(file_dict['content'])
-                    }
-                    for file_dict in files
-                ]
-                LOGGER.info('file_uploads: %r', file_uploads)
-                self.slack_app.client.files_upload_v2(
-                    channel=message_event.channel,
-                    thread_ts=message_event.thread_ts,
-                    file_uploads=file_uploads
-                )
-        except Exception as exc:  # pylint: disable=broad-exception-caught
-            LOGGER.warning('Caught exception: %r', exc, exc_info=True)
-            say(
-                f'Failed to process request due to:\n> {repr(exc)}',
-                thread_ts=event.get('ts')
-            )
-
-
-def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
-    agent = agent_factory()
-    LOGGER.info('System Prompt: %r', agent.system_prompt)
-    assert agent is not None
 
 
 def create_bolt_app(
