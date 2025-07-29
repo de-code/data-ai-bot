@@ -9,6 +9,7 @@ from slack_bolt.context.say import Say
 from data_ai_bot.agent_factory import LoggingToolCallbacksWrapper, SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
+    BlockTypedDict,
     SlackMessageEvent,
     get_slack_blocks_and_files_for_mrkdwn,
     get_slack_message_event_from_event_dict,
@@ -36,6 +37,19 @@ class SlackChatAppMessageClient:
             channel_id=self.message_event.channel,
             thread_ts=self.message_event.thread_ts,
             status=status
+        )
+
+    def post_response_message(
+        self,
+        text: str,
+        blocks: Sequence[BlockTypedDict] | Sequence[dict]
+    ):
+        self.slack_app.client.chat_postMessage(
+            text=text,
+            mrkdwn=True,
+            blocks=cast(Sequence[dict], blocks),
+            channel=self.message_event.channel,
+            thread_ts=self.message_event.thread_ts
         )
 
 
@@ -88,12 +102,9 @@ class SlackChatAppMessageSession:
         blocks, files = get_slack_blocks_and_files_for_mrkdwn(
             response_message_mrkdwn
         )
-        self.slack_app.client.chat_postMessage(
+        self.message_client.post_response_message(
             text=response_message,
-            mrkdwn=True,
-            blocks=cast(Sequence[dict], blocks),
-            channel=message_event.channel,
-            thread_ts=message_event.thread_ts
+            blocks=blocks
         )
         if files:
             file_uploads = [
