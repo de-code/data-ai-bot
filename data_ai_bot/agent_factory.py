@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from functools import wraps
 import logging
 import traceback
-from typing import Any, Callable, Mapping, Protocol, Sequence, TypeVar
+from typing import Any, Callable, Literal, Mapping, Protocol, Sequence, TypeVar
 
 import smolagents  # type: ignore
 from smolagents import Tool
@@ -28,72 +28,36 @@ class ToolCall[ToolT]:
     kwargs: Mapping[str, Any]
 
 
-class ToolCallback[ToolT](Protocol):
-    def __call__(self, tool_call: ToolCall[ToolT]) -> None:
+@dataclass(frozen=True)
+class ToolCallEvent[ToolT]:
+    event_name: Literal['before_call', 'success', 'error']
+    tool_call: ToolCall[ToolT]
+
+
+class ToolCallEventHandler[ToolT](Protocol):
+    def __call__(self, tool_call_event: ToolCallEvent[ToolT]) -> None:
         pass
 
 
-@dataclass(frozen=True)
-class ToolCallbacks:
-    on_before_call: ToolCallback | None = None
-    on_success: ToolCallback | None = None
-    on_error: ToolCallback | None = None
-
-
-def get_chained_tool_callback_functions(
-    callbacks: Sequence[ToolCallback]
-) -> ToolCallback:
+def get_chained_tool_call_event_handlers(
+    tool_call_event_handlers: Sequence[ToolCallEventHandler]
+) -> ToolCallEventHandler:
     def wrapper(*args, **kwargs):
-        for callback in callbacks:
-            callback(*args, **kwargs)
+        for tool_call_event_handler in tool_call_event_handlers:
+            tool_call_event_handler(*args, **kwargs)
     return wrapper
 
 
-def get_chained_tool_callbacks(
-    tool_callbacks_list: Sequence[ToolCallbacks]
-) -> ToolCallbacks:
-    return ToolCallbacks(
-        on_before_call=get_chained_tool_callback_functions([
-            tc.on_before_call
-            for tc in tool_callbacks_list
-            if tc.on_before_call is not None
-        ]),
-        on_success=get_chained_tool_callback_functions([
-            tc.on_success
-            for tc in tool_callbacks_list
-            if tc.on_success is not None
-        ]),
-        on_error=get_chained_tool_callback_functions([
-            tc.on_error
-            for tc in tool_callbacks_list
-            if tc.on_error is not None
-        ])
-    )
-
-
-class LoggingToolCallbacksWrapper(ToolCallbacks):
-    def __init__(self):
-        super().__init__(
-            on_before_call=self._on_before_call,
-            on_success=self._on_success,
-            on_error=self._on_error
-        )
-
-    def _on_before_call(self, tool_call: ToolCall):
-        LOGGER.info('on_before_call: %r', tool_call)
-
-    def _on_success(self, tool_call: ToolCall):
-        LOGGER.info('on_success: %r', tool_call)
-
-    def _on_error(self, tool_call: ToolCall):
-        LOGGER.info('on_error: %r', tool_call)
+class LoggingToolCallEventHandler(ToolCallEventHandler[ToolT]):
+    def __call__(self, tool_call_event: ToolCallEvent[ToolT]) -> None:
+        LOGGER.info('Tool Event: %r', tool_call_event)
 
 
 def get_wrapped_smolagents_tool(
     tool: Tool,
-    tool_callbacks: ToolCallbacks | None = None
+    tool_call_event_handler: ToolCallEventHandler | None = None
 ) -> Tool:
-    if tool_callbacks is None:
+    if tool_call_event_handler is None:
         return tool
 
     orig_call = tool.forward
@@ -101,15 +65,21 @@ def get_wrapped_smolagents_tool(
     @wraps(orig_call)
     def wrapped_call(*args, **kwargs):
         tool_call = ToolCall(tool, args=args, kwargs=kwargs)
-        if tool_callbacks.on_before_call is not None:
-            tool_callbacks.on_before_call(tool_call)
+        tool_call_event_handler(ToolCallEvent(
+            event_name='before_call',
+            tool_call=tool_call
+        ))
         try:
             result = orig_call(*args, **kwargs)
-            if tool_callbacks.on_success is not None:
-                tool_callbacks.on_success(tool_call)
+            tool_call_event_handler(ToolCallEvent(
+                event_name='success',
+                tool_call=tool_call
+            ))
         except Exception:
-            if tool_callbacks.on_error is not None:
-                tool_callbacks.on_error(tool_call)
+            tool_call_event_handler(ToolCallEvent(
+                event_name='error',
+                tool_call=tool_call
+            ))
             raise
         return result
 
@@ -120,12 +90,15 @@ def get_wrapped_smolagents_tool(
 
 def get_wrapped_smolagents_tools(
     tools: Sequence[Tool],
-    tool_callbacks: ToolCallbacks | None = None
+    tool_call_event_handler: ToolCallEventHandler | None = None
 ) -> Sequence[Tool]:
-    if tool_callbacks is None:
+    if tool_call_event_handler is None:
         return tools
     return [
-        get_wrapped_smolagents_tool(tool, tool_callbacks=tool_callbacks)
+        get_wrapped_smolagents_tool(
+            tool,
+            tool_call_event_handler=tool_call_event_handler
+        )
         for tool in tools
     ]
 
@@ -138,12 +111,12 @@ class SmolAgentsAgentFactory:
 
     def __call__(
         self,
-        tool_callbacks: ToolCallbacks | None = None
+        tool_call_event_handler: ToolCallEventHandler | None = None
     ) -> smolagents.MultiStepAgent:
         agent = smolagents.ToolCallingAgent(
             tools=get_wrapped_smolagents_tools(
                 self.tools,
-                tool_callbacks=tool_callbacks
+                tool_call_event_handler=tool_call_event_handler
             ),
             model=self.model,
             step_callbacks=[do_step_callback],

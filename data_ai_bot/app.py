@@ -4,7 +4,7 @@ import logging
 import slack_bolt
 from slack_bolt.context.say import Say
 
-from data_ai_bot.agent_factory import LoggingToolCallbacksWrapper, SmolAgentsAgentFactory
+from data_ai_bot.agent_factory import LoggingToolCallEventHandler, SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
     SlackMessageClient,
@@ -49,7 +49,7 @@ class SlackChatAppMessageSession:
                 message_event=self.message_event
             ),
             previous_messages=self.message_event.previous_messages,
-            tool_callbacks=LoggingToolCallbacksWrapper()
+            tool_call_event_handler=LoggingToolCallEventHandler()
         )
         return agent_response.text
 

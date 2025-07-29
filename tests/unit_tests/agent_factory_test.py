@@ -1,5 +1,5 @@
 from typing import Iterator
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 import smolagents  # type: ignore
@@ -7,8 +7,8 @@ import smolagents  # type: ignore
 import data_ai_bot.agent_factory as agent_factory_module
 from data_ai_bot.agent_factory import (
     ToolCall,
-    ToolCallbacks,
-    get_chained_tool_callbacks,
+    ToolCallEvent,
+    get_chained_tool_call_event_handlers,
     get_wrapped_smolagents_tool,
     get_wrapped_smolagents_tools
 )
@@ -43,9 +43,20 @@ TOOL_CALL_1 = ToolCall(
 )
 
 
+TOOL_CALL_EVENT_1 = ToolCallEvent(
+    event_name='success',
+    tool_call=TOOL_CALL_1
+)
+
+
 @pytest.fixture(name='test_tool')
 def _tool_mock() -> TestTool:
     return TestTool()
+
+
+@pytest.fixture(name='tool_call_event_handler_mock')
+def _tool_event_call_handler_mock() -> MagicMock:
+    return MagicMock(name='tool_call_event_handler_mock')
 
 
 @pytest.fixture(name='on_before_call_mock')
@@ -77,16 +88,17 @@ class TestGetWrappedSmolagentsTool:
     def test_should_not_modify_original_tool(
         self,
         test_tool: TestTool,
-        on_before_call_mock: MagicMock
+        tool_call_event_handler_mock: MagicMock
     ):
         original_forward_fn = test_tool.forward
         original_name = test_tool.name
         original_description = test_tool.description
         original_inputs = test_tool.inputs
         original_output_type = test_tool.output_type
-        get_wrapped_smolagents_tool(test_tool, ToolCallbacks(
-            on_before_call=on_before_call_mock
-        ))
+        get_wrapped_smolagents_tool(
+            test_tool,
+            tool_call_event_handler=tool_call_event_handler_mock
+        )
         assert test_tool.forward == original_forward_fn
         assert test_tool.name == original_name
         assert test_tool.description == original_description
@@ -96,49 +108,45 @@ class TestGetWrappedSmolagentsTool:
     def test_should_pass_on_call_to_tool(
         self,
         test_tool: TestTool,
-        on_before_call_mock: MagicMock
+        tool_call_event_handler_mock: MagicMock
     ):
-        wrapped = get_wrapped_smolagents_tool(test_tool, ToolCallbacks(
-            on_before_call=on_before_call_mock
-        ))
+        wrapped = get_wrapped_smolagents_tool(
+            test_tool,
+            tool_call_event_handler=tool_call_event_handler_mock
+        )
         wrapped('test', kw_1='value_1')
         test_tool.forward_mock.assert_called_with('test', kw_1='value_1')
 
-    def test_should_call_before_and_success_callback(
+    def test_should_emit_before_and_success_events(
         self,
         test_tool: TestTool,
-        on_before_call_mock: MagicMock,
-        on_success_mock: MagicMock,
-        on_error_mock: MagicMock
+        tool_call_event_handler_mock: MagicMock
     ):
-        wrapped = get_wrapped_smolagents_tool(test_tool, ToolCallbacks(
-            on_before_call=on_before_call_mock,
-            on_success=on_success_mock,
-            on_error=on_error_mock
-        ))
+        wrapped = get_wrapped_smolagents_tool(
+            test_tool,
+            tool_call_event_handler=tool_call_event_handler_mock
+        )
         wrapped('test', kw_1='value_1')
         expected_tool_call = ToolCall(
             tool=test_tool,
             args=('test',),
             kwargs={'kw_1': 'value_1'}
         )
-        on_before_call_mock.assert_called_with(expected_tool_call)
-        on_success_mock.assert_called_with(expected_tool_call)
-        on_error_mock.assert_not_called()
+        tool_call_event_handler_mock.assert_has_calls([
+            call(ToolCallEvent(event_name='before_call', tool_call=expected_tool_call)),
+            call(ToolCallEvent(event_name='success', tool_call=expected_tool_call))
+        ])
 
     def test_should_call_error_callback_if_forward_function_raises_exception(
         self,
         test_tool: TestTool,
-        on_before_call_mock: MagicMock,
-        on_success_mock: MagicMock,
-        on_error_mock: MagicMock
+        tool_call_event_handler_mock: MagicMock
     ):
         test_tool.forward_mock.side_effect = RuntimeError('test')
-        wrapped = get_wrapped_smolagents_tool(test_tool, ToolCallbacks(
-            on_before_call=on_before_call_mock,
-            on_success=on_success_mock,
-            on_error=on_error_mock
-        ))
+        wrapped = get_wrapped_smolagents_tool(
+            test_tool,
+            tool_call_event_handler=tool_call_event_handler_mock
+        )
         with pytest.raises(RuntimeError):
             wrapped('test', kw_1='value_1')
         expected_tool_call = ToolCall(
@@ -146,64 +154,36 @@ class TestGetWrappedSmolagentsTool:
             args=('test',),
             kwargs={'kw_1': 'value_1'}
         )
-        on_before_call_mock.assert_called_with(expected_tool_call)
-        on_success_mock.assert_not_called()
-        on_error_mock.assert_called_with(expected_tool_call)
+        tool_call_event_handler_mock.assert_has_calls([
+            call(ToolCallEvent(event_name='before_call', tool_call=expected_tool_call)),
+            call(ToolCallEvent(event_name='error', tool_call=expected_tool_call))
+        ])
 
 
 class TestGetWrappedSmolagentsTools:
     def test_should_return_wrapped_tools(
         self,
         test_tool: TestTool,
-        on_before_call_mock: MagicMock,
+        tool_call_event_handler_mock: MagicMock,
         get_wrapped_smolagents_tool_mock: MagicMock
     ):
-        tool_callbacks = ToolCallbacks(
-            on_before_call=on_before_call_mock,
+        wrapped = get_wrapped_smolagents_tools(
+            [test_tool],
+            tool_call_event_handler=tool_call_event_handler_mock
         )
-        wrapped = get_wrapped_smolagents_tools([test_tool], tool_callbacks)
         assert wrapped == [
             get_wrapped_smolagents_tool_mock.return_value
         ]
         get_wrapped_smolagents_tool_mock.assert_called_with(
             test_tool,
-            tool_callbacks=tool_callbacks
+            tool_call_event_handler=tool_call_event_handler_mock
         )
 
 
-class TestGetChainedToolCallbacks:
-    def test_should_call_multiple_on_before_call_callbacks(self):
-        callback_mocks = [MagicMock(), MagicMock()]
-        chained_tool_callbacks = get_chained_tool_callbacks([
-            ToolCallbacks(on_before_call=callback_mocks[0]),
-            ToolCallbacks(on_before_call=callback_mocks[1]),
-            ToolCallbacks()
-        ])
-        assert chained_tool_callbacks.on_before_call is not None
-        chained_tool_callbacks.on_before_call(TOOL_CALL_1)
-        for mock in callback_mocks:
-            mock.assert_called()
-
-    def test_should_call_multiple_on_success_callbacks(self):
-        callback_mocks = [MagicMock(), MagicMock()]
-        chained_tool_callbacks = get_chained_tool_callbacks([
-            ToolCallbacks(on_success=callback_mocks[0]),
-            ToolCallbacks(on_success=callback_mocks[1]),
-            ToolCallbacks()
-        ])
-        assert chained_tool_callbacks.on_success is not None
-        chained_tool_callbacks.on_success(TOOL_CALL_1)
-        for mock in callback_mocks:
-            mock.assert_called()
-
-    def test_should_call_multiple_on_error_callbacks(self):
-        callback_mocks = [MagicMock(), MagicMock()]
-        chained_tool_callbacks = get_chained_tool_callbacks([
-            ToolCallbacks(on_error=callback_mocks[0]),
-            ToolCallbacks(on_error=callback_mocks[1]),
-            ToolCallbacks()
-        ])
-        assert chained_tool_callbacks.on_error is not None
-        chained_tool_callbacks.on_error(TOOL_CALL_1)
-        for mock in callback_mocks:
-            mock.assert_called()
+class TestGetChainedToolCallEventHandlers:
+    def test_should_call_multiple_handlers(self):
+        handlers = [MagicMock(), MagicMock()]
+        chained_handlers = get_chained_tool_call_event_handlers(handlers)
+        chained_handlers(TOOL_CALL_EVENT_1)
+        for handler in handlers:
+            handler.assert_called_with(TOOL_CALL_EVENT_1)
