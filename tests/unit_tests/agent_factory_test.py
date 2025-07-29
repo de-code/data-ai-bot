@@ -14,6 +14,9 @@ from data_ai_bot.agent_factory import (
 )
 
 
+TEST_TOOL_NAME = 'test_tool_1'
+
+
 class TestTool(smolagents.Tool):
     __test__ = False
 
@@ -37,6 +40,7 @@ class TestTool(smolagents.Tool):
 
 
 TOOL_CALL_1 = ToolCall(
+    tool_name=TEST_TOOL_NAME,
     tool=TestTool(),
     args=['arg_1'],
     kwargs={'kw_1': 'value_1'}
@@ -128,6 +132,7 @@ class TestGetWrappedSmolagentsTool:
         )
         wrapped('test', kw_1='value_1')
         expected_tool_call = ToolCall(
+            tool_name=test_tool.name,
             tool=test_tool,
             args=('test',),
             kwargs={'kw_1': 'value_1'}
@@ -150,6 +155,7 @@ class TestGetWrappedSmolagentsTool:
         with pytest.raises(RuntimeError):
             wrapped('test', kw_1='value_1')
         expected_tool_call = ToolCall(
+            tool_name=test_tool.name,
             tool=test_tool,
             args=('test',),
             kwargs={'kw_1': 'value_1'}

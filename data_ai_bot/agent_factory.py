@@ -23,6 +23,7 @@ def do_step_callback(step_log: smolagents.ActionStep):
 
 @dataclass(frozen=True)
 class ToolCall[ToolT]:
+    tool_name: str
     tool: ToolT
     args: Sequence[Any]
     kwargs: Mapping[str, Any]
@@ -64,7 +65,12 @@ def get_wrapped_smolagents_tool(
 
     @wraps(orig_call)
     def wrapped_call(*args, **kwargs):
-        tool_call = ToolCall(tool, args=args, kwargs=kwargs)
+        tool_call = ToolCall(
+            tool_name=tool.name,
+            tool=tool,
+            args=args,
+            kwargs=kwargs
+        )
         tool_call_event_handler(ToolCallEvent(
             event_name='before_call',
             tool_call=tool_call

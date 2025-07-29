@@ -4,7 +4,7 @@ import logging
 import slack_bolt
 from slack_bolt.context.say import Say
 
-from data_ai_bot.agent_factory import LoggingToolCallEventHandler, SmolAgentsAgentFactory
+from data_ai_bot.agent_factory import SmolAgentsAgentFactory, ToolCallEvent
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
     SlackMessageClient,
@@ -49,9 +49,30 @@ class SlackChatAppMessageSession:
                 message_event=self.message_event
             ),
             previous_messages=self.message_event.previous_messages,
-            tool_call_event_handler=LoggingToolCallEventHandler()
+            tool_call_event_handler=self.on_tool_call_event
         )
         return agent_response.text
+
+    def on_tool_call_event(self, tool_call_event: ToolCallEvent):
+        LOGGER.info('Tool Call Event: %r', tool_call_event)
+        tool_name = tool_call_event.tool_call.tool_name
+        formatted_args = ','.join([
+            f'{key}={repr(value)}'
+            for key, value in tool_call_event.tool_call.kwargs.items()
+        ])
+        tool_call_str = f'{tool_name}({formatted_args})'
+        if tool_call_event.event_name == 'before_call':
+            self.message_client.set_status(
+                f'Calling Tool: {tool_call_str}'
+            )
+        if tool_call_event.event_name == 'success':
+            self.message_client.set_status(
+                f'Completed Tool: {tool_call_str}'
+            )
+        if tool_call_event.event_name == 'error':
+            self.message_client.set_status(
+                f'Failed Tool: {tool_call_str}'
+            )
 
     def handle_message(self):
         message_event = self.message_event
