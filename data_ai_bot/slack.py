@@ -258,7 +258,7 @@ def get_slack_blocks_and_files_for_mrkdwn(
 
 
 @dataclass(frozen=True)
-class SlackChatAppMessageClient:
+class SlackMessageClient:
     slack_app: slack_bolt.App
     message_event: SlackMessageEvent
 

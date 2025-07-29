@@ -7,7 +7,7 @@ from slack_bolt.context.say import Say
 from data_ai_bot.agent_factory import LoggingToolCallbacksWrapper, SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
-    SlackChatAppMessageClient,
+    SlackMessageClient,
     SlackMessageEvent,
     get_slack_blocks_and_files_for_mrkdwn,
     get_slack_message_event_from_event_dict,
@@ -31,7 +31,7 @@ class SlackChatAppMessageSession:
     slack_app: slack_bolt.App
     message_event_dict: dict
     message_event: SlackMessageEvent
-    message_client: SlackChatAppMessageClient
+    message_client: SlackMessageClient
     say: Say
     echo_message: bool = False
 
@@ -98,7 +98,7 @@ class SlackChatApp:
                 slack_app=self.slack_app,
                 message_event_dict=event,
                 message_event=message_event,
-                message_client=SlackChatAppMessageClient(
+                message_client=SlackMessageClient(
                     slack_app=self.slack_app,
                     message_event=message_event
                 ),
