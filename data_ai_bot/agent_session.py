@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from typing import Sequence
 
 from data_ai_bot.agent_factory import (
-    LoggingToolCallbacksWrapper,
-    SmolAgentsAgentFactory
+    SmolAgentsAgentFactory,
+    ToolCallbacks
 )
 
 
@@ -19,10 +19,11 @@ class SmolAgentsAgentSession:
     def run(
         self,
         message: str,
-        previous_messages: Sequence[str]
+        previous_messages: Sequence[str],
+        tool_callbacks: ToolCallbacks | None = None
     ) -> AgentResponse:
         text = self.agent_factory(
-            tool_callbacks=LoggingToolCallbacksWrapper()
+            tool_callbacks=tool_callbacks
         ).run(
             message,
             additional_args={

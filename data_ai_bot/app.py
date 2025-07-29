@@ -6,7 +6,7 @@ from typing import Sequence, cast
 import slack_bolt
 from slack_bolt.context.say import Say
 
-from data_ai_bot.agent_factory import SmolAgentsAgentFactory
+from data_ai_bot.agent_factory import LoggingToolCallbacksWrapper, SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
     SlackMessageEvent,
@@ -45,7 +45,8 @@ class SlackChatApp:
             message=get_agent_message(
                 message_event=message_event
             ),
-            previous_messages=message_event.previous_messages
+            previous_messages=message_event.previous_messages,
+            tool_callbacks=LoggingToolCallbacksWrapper()
         )
         return agent_response.text
 
