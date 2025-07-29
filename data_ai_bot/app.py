@@ -1,7 +1,5 @@
 from dataclasses import dataclass
-from io import BytesIO
 import logging
-from typing import Sequence, cast
 
 import slack_bolt
 from slack_bolt.context.say import Say
@@ -9,8 +7,7 @@ from slack_bolt.context.say import Say
 from data_ai_bot.agent_factory import LoggingToolCallbacksWrapper, SmolAgentsAgentFactory
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
-    BlockTypedDict,
-    FileTypedDict,
+    SlackChatAppMessageClient,
     SlackMessageEvent,
     get_slack_blocks_and_files_for_mrkdwn,
     get_slack_message_event_from_event_dict,
@@ -26,50 +23,6 @@ def get_agent_message(
     message_event: SlackMessageEvent
 ) -> str:
     return f'{message_event.text}'.strip() + '\n'
-
-
-@dataclass(frozen=True)
-class SlackChatAppMessageClient:
-    slack_app: slack_bolt.App
-    message_event: SlackMessageEvent
-
-    def set_status(self, status: str):
-        self.slack_app.client.assistant_threads_setStatus(
-            channel_id=self.message_event.channel,
-            thread_ts=self.message_event.thread_ts,
-            status=status
-        )
-
-    def post_response_message(
-        self,
-        text: str,
-        blocks: Sequence[BlockTypedDict] | Sequence[dict]
-    ):
-        self.slack_app.client.chat_postMessage(
-            text=text,
-            mrkdwn=True,
-            blocks=cast(Sequence[dict], blocks),
-            channel=self.message_event.channel,
-            thread_ts=self.message_event.thread_ts
-        )
-
-    def upload_files(self, files: Sequence[FileTypedDict]):
-        if not files:
-            return
-        file_uploads = [
-            {
-                'filename': file_dict['filename'],
-                'title': file_dict['filename'],
-                'file': BytesIO(file_dict['content'])
-            }
-            for file_dict in files
-        ]
-        LOGGER.info('file_uploads: %r', file_uploads)
-        self.slack_app.client.files_upload_v2(
-            channel=self.message_event.channel,
-            thread_ts=self.message_event.thread_ts,
-            file_uploads=file_uploads
-        )
 
 
 @dataclass(frozen=True)
