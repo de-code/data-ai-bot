@@ -27,13 +27,16 @@ def get_agent_message(
 
 
 @dataclass(frozen=True)
-class SlackChatApp:
+class SlackChatAppMessageSession:
     agent_factory: SmolAgentsAgentFactory
     slack_app: slack_bolt.App
+    message_event_dict: dict
+    message_event: SlackMessageEvent
+    say: Say
     echo_message: bool = False
 
-    def get_agent_response_message(self, message_event: SlackMessageEvent) -> str:
-        text = message_event.text
+    def get_agent_response_message(self) -> str:
+        text = self.message_event.text
         last_word = text.rsplit(' ')[-1]
         if last_word == 'TEST_LONG_TEXT':
             return DUMMY_TEXT_4K
@@ -43,12 +46,66 @@ class SlackChatApp:
             agent_factory=self.agent_factory
         ).run(
             message=get_agent_message(
-                message_event=message_event
+                message_event=self.message_event
             ),
-            previous_messages=message_event.previous_messages,
+            previous_messages=self.message_event.previous_messages,
             tool_callbacks=LoggingToolCallbacksWrapper()
         )
         return agent_response.text
+
+    def handle_message(self):
+        message_event = self.message_event
+        LOGGER.info('message_event: %r', message_event)
+        self.slack_app.client.assistant_threads_setStatus(
+            channel_id=message_event.channel,
+            thread_ts=message_event.thread_ts,
+            status=f'Processing request: {message_event.text}'
+        )
+
+        if self.echo_message:
+            self.say(
+                f'Hi <@{message_event.user}>! You said: {message_event.text}',
+                thread_ts=message_event.thread_ts
+            )
+        response_message = self.get_agent_response_message()
+        LOGGER.info('response_message: %r', response_message)
+        response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
+            response_message
+        )
+        LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
+        LOGGER.info('responded to event: %r', self.message_event_dict)
+        blocks, files = get_slack_blocks_and_files_for_mrkdwn(
+            response_message_mrkdwn
+        )
+        self.slack_app.client.chat_postMessage(
+            text=response_message,
+            mrkdwn=True,
+            blocks=cast(Sequence[dict], blocks),
+            channel=message_event.channel,
+            thread_ts=message_event.thread_ts
+        )
+        if files:
+            file_uploads = [
+                {
+                    'filename': file_dict['filename'],
+                    'title': file_dict['filename'],
+                    'file': BytesIO(file_dict['content'])
+                }
+                for file_dict in files
+            ]
+            LOGGER.info('file_uploads: %r', file_uploads)
+            self.slack_app.client.files_upload_v2(
+                channel=message_event.channel,
+                thread_ts=message_event.thread_ts,
+                file_uploads=file_uploads
+            )
+
+
+@dataclass(frozen=True)
+class SlackChatApp:
+    agent_factory: SmolAgentsAgentFactory
+    slack_app: slack_bolt.App
+    echo_message: bool = False
 
     def handle_message(self, event: dict, say: Say):
         try:
@@ -56,53 +113,14 @@ class SlackChatApp:
                 app=self.slack_app,
                 event=event
             )
-            LOGGER.info('message_event: %r', message_event)
-
-            self.slack_app.client.assistant_threads_setStatus(
-                channel_id=message_event.channel,
-                thread_ts=message_event.thread_ts,
-                status=f'Processing request: {message_event.text}'
-            )
-
-            if self.echo_message:
-                say(
-                    f'Hi <@{message_event.user}>! You said: {message_event.text}',
-                    thread_ts=message_event.thread_ts
-                )
-            response_message = self.get_agent_response_message(
-                message_event=message_event
-            )
-            LOGGER.info('response_message: %r', response_message)
-            response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
-                response_message
-            )
-            LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
-            LOGGER.info('responded to event: %r', event)
-            blocks, files = get_slack_blocks_and_files_for_mrkdwn(
-                response_message_mrkdwn
-            )
-            self.slack_app.client.chat_postMessage(
-                text=response_message,
-                mrkdwn=True,
-                blocks=cast(Sequence[dict], blocks),
-                channel=message_event.channel,
-                thread_ts=message_event.thread_ts
-            )
-            if files:
-                file_uploads = [
-                    {
-                        'filename': file_dict['filename'],
-                        'title': file_dict['filename'],
-                        'file': BytesIO(file_dict['content'])
-                    }
-                    for file_dict in files
-                ]
-                LOGGER.info('file_uploads: %r', file_uploads)
-                self.slack_app.client.files_upload_v2(
-                    channel=message_event.channel,
-                    thread_ts=message_event.thread_ts,
-                    file_uploads=file_uploads
-                )
+            SlackChatAppMessageSession(
+                agent_factory=self.agent_factory,
+                slack_app=self.slack_app,
+                message_event_dict=event,
+                message_event=message_event,
+                say=say,
+                echo_message=self.echo_message
+            ).handle_message()
         except Exception as exc:  # pylint: disable=broad-exception-caught
             LOGGER.warning('Caught exception: %r', exc, exc_info=True)
             say(
