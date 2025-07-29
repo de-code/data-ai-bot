@@ -39,7 +39,9 @@ class SlackChatApp:
             return DUMMY_TEXT_4K
         if last_word == 'TEST_LONG_CODE':
             return f'```\n{DUMMY_TEXT_4K}\n```'
-        agent_response = SmolAgentsAgentSession(self.agent_factory()).run(
+        agent_response = SmolAgentsAgentSession(
+            agent_factory=self.agent_factory
+        ).run(
             message=get_agent_message(
                 message_event=message_event
             ),
