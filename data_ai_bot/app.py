@@ -27,11 +27,25 @@ def get_agent_message(
 
 
 @dataclass(frozen=True)
+class SlackChatAppMessageClient:
+    slack_app: slack_bolt.App
+    message_event: SlackMessageEvent
+
+    def set_status(self, status: str):
+        self.slack_app.client.assistant_threads_setStatus(
+            channel_id=self.message_event.channel,
+            thread_ts=self.message_event.thread_ts,
+            status=status
+        )
+
+
+@dataclass(frozen=True)
 class SlackChatAppMessageSession:
     agent_factory: SmolAgentsAgentFactory
     slack_app: slack_bolt.App
     message_event_dict: dict
     message_event: SlackMessageEvent
+    message_client: SlackChatAppMessageClient
     say: Say
     echo_message: bool = False
 
@@ -56,11 +70,8 @@ class SlackChatAppMessageSession:
     def handle_message(self):
         message_event = self.message_event
         LOGGER.info('message_event: %r', message_event)
-        self.slack_app.client.assistant_threads_setStatus(
-            channel_id=message_event.channel,
-            thread_ts=message_event.thread_ts,
-            status=f'Processing request: {message_event.text}'
-        )
+
+        self.message_client.set_status(f'Processing request: {message_event.text}')
 
         if self.echo_message:
             self.say(
@@ -118,6 +129,10 @@ class SlackChatApp:
                 slack_app=self.slack_app,
                 message_event_dict=event,
                 message_event=message_event,
+                message_client=SlackChatAppMessageClient(
+                    slack_app=self.slack_app,
+                    message_event=message_event
+                ),
                 say=say,
                 echo_message=self.echo_message
             ).handle_message()
