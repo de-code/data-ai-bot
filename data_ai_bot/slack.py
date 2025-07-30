@@ -1,6 +1,7 @@
 
 
 from dataclasses import dataclass
+from io import BytesIO
 import logging
 import re
 import textwrap
@@ -29,9 +30,17 @@ class BlockTextTypedDict(TypedDict):
     text: str
 
 
-class BlockTypedDict(TypedDict):
+class SectionBlockTypedDict(TypedDict):
     type: str  # e.g. 'section'
     text: BlockTextTypedDict
+
+
+class ContextBlockTypedDict(TypedDict):
+    type: str  # e.g. 'context'
+    elements: Sequence[BlockTextTypedDict]
+
+
+BlockTypedDict = SectionBlockTypedDict | ContextBlockTypedDict
 
 
 class FileTypedDict(TypedDict):
@@ -186,7 +195,7 @@ def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
 def get_slack_blocks_for_mrkdwn(
     mrkdwn: str,
     max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
-) -> Sequence[BlockTypedDict]:
+) -> Sequence[SectionBlockTypedDict]:
     return [
         {
             'type': 'section',
@@ -225,7 +234,7 @@ def get_replacement_block_and_file_for_too_long_code_block(
         file_no=file_no
     )
     filename = file_dict['filename']
-    block: BlockTypedDict = {
+    block: SectionBlockTypedDict = {
         'type': 'section',
         'text': {
             'type': 'mrkdwn',
@@ -254,3 +263,47 @@ def get_slack_blocks_and_files_for_mrkdwn(
         else:
             final_blocks.append(block)
     return final_blocks, files
+
+
+@dataclass(frozen=True)
+class SlackMessageClient:
+    slack_app: slack_bolt.App
+    message_event: SlackMessageEvent
+
+    def set_status(self, status: str):
+        self.slack_app.client.assistant_threads_setStatus(
+            channel_id=self.message_event.channel,
+            thread_ts=self.message_event.thread_ts,
+            status=status
+        )
+
+    def post_response_message(
+        self,
+        text: str,
+        blocks: Sequence[BlockTypedDict] | Sequence[dict]
+    ):
+        self.slack_app.client.chat_postMessage(
+            text=text,
+            mrkdwn=True,
+            blocks=cast(Sequence[dict], blocks),
+            channel=self.message_event.channel,
+            thread_ts=self.message_event.thread_ts
+        )
+
+    def upload_files(self, files: Sequence[FileTypedDict]):
+        if not files:
+            return
+        file_uploads = [
+            {
+                'filename': file_dict['filename'],
+                'title': file_dict['filename'],
+                'file': BytesIO(file_dict['content'])
+            }
+            for file_dict in files
+        ]
+        LOGGER.info('file_uploads: %r', file_uploads)
+        self.slack_app.client.files_upload_v2(
+            channel=self.message_event.channel,
+            thread_ts=self.message_event.thread_ts,
+            file_uploads=file_uploads
+        )

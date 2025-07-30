@@ -1,13 +1,17 @@
+from copy import deepcopy
 from dataclasses import dataclass
+from functools import wraps
 import logging
 import traceback
-from typing import Callable, Sequence
+from typing import Any, Callable, Literal, Mapping, Protocol, Sequence, TypeVar
 
 import smolagents  # type: ignore
 from smolagents import Tool
 
 
 LOGGER = logging.getLogger(__name__)
+
+ToolT = TypeVar('ToolT', bound=Callable)
 
 
 def do_step_callback(step_log: smolagents.ActionStep):
@@ -18,14 +22,108 @@ def do_step_callback(step_log: smolagents.ActionStep):
 
 
 @dataclass(frozen=True)
+class ToolCall[ToolT]:
+    tool_name: str
+    tool: ToolT
+    args: Sequence[Any]
+    kwargs: Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class ToolCallEvent[ToolT]:
+    event_name: Literal['before_call', 'success', 'error']
+    tool_call: ToolCall[ToolT]
+
+
+class ToolCallEventHandler[ToolT](Protocol):
+    def __call__(self, tool_call_event: ToolCallEvent[ToolT]) -> None:
+        pass
+
+
+def get_chained_tool_call_event_handlers(
+    tool_call_event_handlers: Sequence[ToolCallEventHandler]
+) -> ToolCallEventHandler:
+    def wrapper(*args, **kwargs):
+        for tool_call_event_handler in tool_call_event_handlers:
+            tool_call_event_handler(*args, **kwargs)
+    return wrapper
+
+
+class LoggingToolCallEventHandler(ToolCallEventHandler[ToolT]):
+    def __call__(self, tool_call_event: ToolCallEvent[ToolT]) -> None:
+        LOGGER.info('Tool Event: %r', tool_call_event)
+
+
+def get_wrapped_smolagents_tool(
+    tool: Tool,
+    tool_call_event_handler: ToolCallEventHandler | None = None
+) -> Tool:
+    if tool_call_event_handler is None:
+        return tool
+
+    orig_call = tool.forward
+
+    @wraps(orig_call)
+    def wrapped_call(*args, **kwargs):
+        tool_call = ToolCall(
+            tool_name=tool.name,
+            tool=tool,
+            args=args,
+            kwargs=kwargs
+        )
+        tool_call_event_handler(ToolCallEvent(
+            event_name='before_call',
+            tool_call=tool_call
+        ))
+        try:
+            result = orig_call(*args, **kwargs)
+            tool_call_event_handler(ToolCallEvent(
+                event_name='success',
+                tool_call=tool_call
+            ))
+        except Exception:
+            tool_call_event_handler(ToolCallEvent(
+                event_name='error',
+                tool_call=tool_call
+            ))
+            raise
+        return result
+
+    wrapped_tool = deepcopy(tool)
+    wrapped_tool.forward = wrapped_call
+    return wrapped_tool
+
+
+def get_wrapped_smolagents_tools(
+    tools: Sequence[Tool],
+    tool_call_event_handler: ToolCallEventHandler | None = None
+) -> Sequence[Tool]:
+    if tool_call_event_handler is None:
+        return tools
+    return [
+        get_wrapped_smolagents_tool(
+            tool,
+            tool_call_event_handler=tool_call_event_handler
+        )
+        for tool in tools
+    ]
+
+
+@dataclass(frozen=True)
 class SmolAgentsAgentFactory:
     model: smolagents.Model
     tools: Sequence[Tool]
     system_prompt: str | None = None
 
-    def __call__(self) -> smolagents.MultiStepAgent:
+    def __call__(
+        self,
+        tool_call_event_handler: ToolCallEventHandler | None = None
+    ) -> smolagents.MultiStepAgent:
         agent = smolagents.ToolCallingAgent(
-            tools=self.tools,
+            tools=get_wrapped_smolagents_tools(
+                self.tools,
+                tool_call_event_handler=tool_call_event_handler
+            ),
             model=self.model,
             step_callbacks=[do_step_callback],
             max_steps=3
