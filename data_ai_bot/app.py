@@ -1,5 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
+from typing import Sequence
 
 import slack_bolt
 from slack_bolt.context.say import Say
@@ -7,6 +8,8 @@ from slack_bolt.context.say import Say
 from data_ai_bot.agent_factory import SmolAgentsAgentFactory, ToolCallEvent
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
+    BlockTypedDict,
+    ContextBlockTypedDict,
     SlackMessageClient,
     SlackMessageEvent,
     get_slack_blocks_and_files_for_mrkdwn,
@@ -14,6 +17,7 @@ from data_ai_bot.slack import (
     get_slack_mrkdwn_for_markdown
 )
 from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
+from data_ai_bot.utils.text import get_truncated_with_ellipsis
 
 
 LOGGER = logging.getLogger(__name__)
@@ -26,7 +30,7 @@ def get_agent_message(
 
 
 @dataclass(frozen=True)
-class SlackChatAppMessageSession:
+class SlackChatAppMessageSession:  # pylint: disable=too-many-instance-attributes
     agent_factory: SmolAgentsAgentFactory
     slack_app: slack_bolt.App
     message_event_dict: dict
@@ -34,6 +38,7 @@ class SlackChatAppMessageSession:
     message_client: SlackMessageClient
     say: Say
     echo_message: bool = False
+    tool_call_str_list: list[str] = field(default_factory=list)
 
     def get_agent_response_message(self) -> str:
         text = self.message_event.text
@@ -69,10 +74,25 @@ class SlackChatAppMessageSession:
             self.message_client.set_status(
                 f'Completed Tool: {tool_call_str}'
             )
+            self.tool_call_str_list.append(tool_call_str)
         if tool_call_event.event_name == 'error':
             self.message_client.set_status(
                 f'Failed Tool: {tool_call_str}'
             )
+
+    def get_tool_call_blocks(self) -> Sequence[ContextBlockTypedDict]:
+        if not self.tool_call_str_list:
+            return []
+        return [{
+            'type': 'context',
+            'elements': [{
+                'type': 'mrkdwn',
+                'text': get_truncated_with_ellipsis(
+                    'Called Tools: ' + ', '.join(self.tool_call_str_list),
+                    max_length=3000
+                )
+            }]
+        }]
 
     def handle_message(self):
         message_event = self.message_event
@@ -92,12 +112,13 @@ class SlackChatAppMessageSession:
         )
         LOGGER.info('response_message_mrkdwn: %r', response_message_mrkdwn)
         LOGGER.info('responded to event: %r', self.message_event_dict)
+        tool_call_blocks = self.get_tool_call_blocks()
         blocks, files = get_slack_blocks_and_files_for_mrkdwn(
             response_message_mrkdwn
         )
         self.message_client.post_response_message(
             text=response_message,
-            blocks=blocks
+            blocks=list[BlockTypedDict](tool_call_blocks) + list[BlockTypedDict](blocks)
         )
         self.message_client.upload_files(files)
 

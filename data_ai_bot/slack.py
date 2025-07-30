@@ -30,9 +30,17 @@ class BlockTextTypedDict(TypedDict):
     text: str
 
 
-class BlockTypedDict(TypedDict):
+class SectionBlockTypedDict(TypedDict):
     type: str  # e.g. 'section'
     text: BlockTextTypedDict
+
+
+class ContextBlockTypedDict(TypedDict):
+    type: str  # e.g. 'context'
+    elements: Sequence[BlockTextTypedDict]
+
+
+BlockTypedDict = SectionBlockTypedDict | ContextBlockTypedDict
 
 
 class FileTypedDict(TypedDict):
@@ -187,7 +195,7 @@ def iter_split_mrkdwn(mrkdwn: str, max_length: int) -> Iterable[str]:
 def get_slack_blocks_for_mrkdwn(
     mrkdwn: str,
     max_block_length: int = DEFAULT_MAX_BLOCK_LENGTH
-) -> Sequence[BlockTypedDict]:
+) -> Sequence[SectionBlockTypedDict]:
     return [
         {
             'type': 'section',
@@ -226,7 +234,7 @@ def get_replacement_block_and_file_for_too_long_code_block(
         file_no=file_no
     )
     filename = file_dict['filename']
-    block: BlockTypedDict = {
+    block: SectionBlockTypedDict = {
         'type': 'section',
         'text': {
             'type': 'mrkdwn',
