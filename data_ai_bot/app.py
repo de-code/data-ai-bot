@@ -5,7 +5,7 @@ from typing import Sequence
 import slack_bolt
 from slack_bolt.context.say import Say
 
-from data_ai_bot.agent_factory import SmolAgentsAgentFactory, ToolCallEvent
+from data_ai_bot.agent_factory import SmolAgentsAgentFactory, ToolCall, ToolCallEvent
 from data_ai_bot.agent_session import SmolAgentsAgentSession
 from data_ai_bot.slack import (
     BlockTypedDict,
@@ -27,6 +27,13 @@ def get_agent_message(
     message_event: SlackMessageEvent
 ) -> str:
     return f'{message_event.text}'.strip() + '\n'
+
+
+def get_formatted_tool_args(tool_call: ToolCall) -> str:
+    return ','.join([
+        f'{key}={repr(value)}'
+        for key, value in tool_call.kwargs.items()
+    ])
 
 
 @dataclass(frozen=True)
@@ -61,10 +68,7 @@ class SlackChatAppMessageSession:  # pylint: disable=too-many-instance-attribute
     def on_tool_call_event(self, tool_call_event: ToolCallEvent):
         LOGGER.info('Tool Call Event: %r', tool_call_event)
         tool_name = tool_call_event.tool_call.tool_name
-        formatted_args = ','.join([
-            f'{key}={repr(value)}'
-            for key, value in tool_call_event.tool_call.kwargs.items()
-        ])
+        formatted_args = get_formatted_tool_args(tool_call_event.tool_call)
         tool_call_str = f'{tool_name}({formatted_args})'
         if tool_call_event.event_name == 'before_call':
             self.message_client.set_status(
