@@ -30,7 +30,7 @@ def get_agent_message(
 
 
 def get_formatted_tool_args(tool_call: ToolCall) -> str:
-    return ','.join([
+    return ', '.join([
         f'{key}={repr(value)}'
         for key, value in tool_call.kwargs.items()
     ])
