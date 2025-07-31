@@ -45,6 +45,17 @@ class TestGetFormattedToolArgs:
             kwargs={'key_1': ''}
         )) == ''
 
+    def test_should_use_mrkdwn_if_enabled(self):
+        assert get_formatted_tool_args(
+            ToolCall(
+                tool_name='tool_1',
+                tool=MagicMock(name='tool_1'),
+                args=[],
+                kwargs={'key_1': 'value_1'}
+            ),
+            mrkdwn=True
+        ) == "_key_1_='value_1'"
+
 
 class TestGetPlainTextFormattedToolCall:
     def test_should_format_simple_tool_call(self):
@@ -69,4 +80,4 @@ class TestGetMrkdwnFormattedToolCall:
         )
         assert get_mrkdwn_formatted_tool_call(
             tool_call
-        ) == f'*tool_1*{ZERO_WIDTH_SPACE}({get_formatted_tool_args(tool_call)})'
+        ) == f'*tool_1*{ZERO_WIDTH_SPACE}({get_formatted_tool_args(tool_call, mrkdwn=True)})'

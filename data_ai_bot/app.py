@@ -32,9 +32,14 @@ def get_agent_message(
     return f'{message_event.text}'.strip() + '\n'
 
 
-def get_formatted_tool_args(tool_call: ToolCall) -> str:
+def get_formatted_tool_args(
+    tool_call: ToolCall,
+    mrkdwn: bool = False
+) -> str:
     return ', '.join([
-        f'{key}={repr(value)}'
+        f'_{key}_={repr(value)}'
+        if mrkdwn
+        else f'{key}={repr(value)}'
         for key, value in tool_call.kwargs.items()
         if value
     ])
@@ -48,7 +53,7 @@ def get_plain_text_formatted_tool_call(tool_call: ToolCall) -> str:
 
 def get_mrkdwn_formatted_tool_call(tool_call: ToolCall) -> str:
     tool_name = tool_call.tool_name
-    formatted_args = get_formatted_tool_args(tool_call)
+    formatted_args = get_formatted_tool_args(tool_call, mrkdwn=True)
     return f'*{tool_name}*{ZERO_WIDTH_SPACE}({formatted_args})'
 
 
