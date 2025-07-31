@@ -23,6 +23,9 @@ from data_ai_bot.utils.text import get_truncated_with_ellipsis
 LOGGER = logging.getLogger(__name__)
 
 
+ZERO_WIDTH_SPACE = '\u200B'
+
+
 def get_agent_message(
     message_event: SlackMessageEvent
 ) -> str:
@@ -35,6 +38,18 @@ def get_formatted_tool_args(tool_call: ToolCall) -> str:
         for key, value in tool_call.kwargs.items()
         if value
     ])
+
+
+def get_plain_text_formatted_tool_call(tool_call: ToolCall) -> str:
+    tool_name = tool_call.tool_name
+    formatted_args = get_formatted_tool_args(tool_call)
+    return f'{tool_name}({formatted_args})'
+
+
+def get_mrkdwn_formatted_tool_call(tool_call: ToolCall) -> str:
+    tool_name = tool_call.tool_name
+    formatted_args = get_formatted_tool_args(tool_call)
+    return f'*{tool_name}*{ZERO_WIDTH_SPACE}({formatted_args})'
 
 
 @dataclass(frozen=True)
@@ -68,21 +83,20 @@ class SlackChatAppMessageSession:  # pylint: disable=too-many-instance-attribute
 
     def on_tool_call_event(self, tool_call_event: ToolCallEvent):
         LOGGER.info('Tool Call Event: %r', tool_call_event)
-        tool_name = tool_call_event.tool_call.tool_name
-        formatted_args = get_formatted_tool_args(tool_call_event.tool_call)
-        tool_call_str = f'{tool_name}({formatted_args})'
+        plain_text_tool_call_str = get_plain_text_formatted_tool_call(tool_call_event.tool_call)
+        mrkdwn_tool_call_str = get_mrkdwn_formatted_tool_call(tool_call_event.tool_call)
         if tool_call_event.event_name == 'before_call':
             self.message_client.set_status(
-                f'Calling Tool: {tool_call_str}'
+                f'Calling Tool: {plain_text_tool_call_str}'
             )
         if tool_call_event.event_name == 'success':
             self.message_client.set_status(
-                f'Completed Tool: {tool_call_str}'
+                f'Completed Tool: {plain_text_tool_call_str}'
             )
-            self.tool_call_str_list.append(tool_call_str)
+            self.tool_call_str_list.append(mrkdwn_tool_call_str)
         if tool_call_event.event_name == 'error':
             self.message_client.set_status(
-                f'Failed Tool: {tool_call_str}'
+                f'Failed Tool: {plain_text_tool_call_str}'
             )
 
     def get_tool_call_blocks(self) -> Sequence[ContextBlockTypedDict]:
