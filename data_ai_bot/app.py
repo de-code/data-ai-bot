@@ -33,6 +33,7 @@ def get_formatted_tool_args(tool_call: ToolCall) -> str:
     return ', '.join([
         f'{key}={repr(value)}'
         for key, value in tool_call.kwargs.items()
+        if value
     ])
 
 

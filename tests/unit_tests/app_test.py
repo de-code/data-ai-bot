@@ -30,3 +30,11 @@ class TestGetFormattedToolArgs:
                 'key_2': 'value_2'
             }
         )) == "key_1='value_1', key_2='value_2'"
+
+    def test_should_ignore_arguments_with_empty_value(self):
+        assert get_formatted_tool_args(ToolCall(
+            tool_name='tool_1',
+            tool=MagicMock(name='tool_1'),
+            args=[],
+            kwargs={'key_1': ''}
+        )) == ''
