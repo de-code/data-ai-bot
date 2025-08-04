@@ -1,4 +1,4 @@
-arize-phoenix==11.17.0
+arize-phoenix==11.18.0
 flake8==7.3.0
 pylint==3.3.7
 pytest==8.4.1
