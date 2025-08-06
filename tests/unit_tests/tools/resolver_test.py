@@ -1,11 +1,13 @@
 # pylint: disable=duplicate-code
+import dataclasses
 from typing import Iterator
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from smolagents import (  # type: ignore[import-untyped]
-    ToolCollection
+    ToolCollection,
+    tool as smolagents_tool
 )
 
 from data_ai_bot.config import (
@@ -57,6 +59,22 @@ DEFAULT_CONFIG_TOOL_RESOLVER = ConfigToolResolver(
     tool_definitions_config=DEFAULT_TOOL_DEFINITIONS_CONFIG,
     tool_collection_definitions_config=TOOL_COLLECTION_DEFINITIONS_CONFIG_1
 )
+
+
+@smolagents_tool
+def _test_tool_1() -> str:
+    """
+    Test tool 1
+    """
+    return 'Tool 1'
+
+
+@smolagents_tool
+def _test_tool_2() -> str:
+    """
+    Test tool 2
+    """
+    return 'Tool 2'
 
 
 @pytest.fixture(name='tool_collection_from_mcp_mock', autouse=True)
@@ -161,3 +179,25 @@ class TestConfigToolResolver:
             },
             trust_remote_code=True
         )
+
+    def test_should_filter_tools_of_collection(
+        self,
+        tool_collection_mock: MagicMock
+    ):
+        resolver = ConfigToolResolver(
+            headers=DEFAULT_HEADERS,
+            tool_collection_definitions_config=ToolCollectionDefinitionsConfig(
+                from_mcp=[
+                    dataclasses.replace(
+                        FROM_MCP_CONFIG_1,
+                        tools=[_test_tool_1.name]
+                    )
+                ]
+            )
+        )
+        tool_collection_mock.tools = [
+            _test_tool_1,
+            _test_tool_2
+        ]
+        tools = resolver.get_tools_by_collection_name(FROM_MCP_CONFIG_1.name)
+        assert tools == [_test_tool_1]
