@@ -74,8 +74,18 @@ dev-start:
 	CONFIG_FILE=config/agent.yaml \
 		$(PYTHON) -m data_ai_bot
 
+dev-start:
+	CONFIG_FILE=config/local-agent.yaml \
+		$(PYTHON) -m data_ai_bot
+
 dev-start-with-telemetry:
 	CONFIG_FILE=config/agent.yaml \
+		OTLP_ENDPOINT=http://0.0.0.0:6006/v1/traces \
+		$(PYTHON) -m data_ai_bot
+
+
+dev-start-with-telemetry-local-config:
+	CONFIG_FILE=config/local-agent.yaml \
 		OTLP_ENDPOINT=http://0.0.0.0:6006/v1/traces \
 		$(PYTHON) -m data_ai_bot
 
