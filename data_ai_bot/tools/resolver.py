@@ -113,7 +113,9 @@ def get_tool_from_python_tool_class(
 
 @dataclass(frozen=True)
 class ConfigToolResolver(ToolResolver):
-    tool_definitions_config: ToolDefinitionsConfig
+    tool_definitions_config: ToolDefinitionsConfig = (
+        ToolDefinitionsConfig()
+    )
     tool_collection_definitions_config: ToolCollectionDefinitionsConfig = (
         ToolCollectionDefinitionsConfig(from_mcp=[])
     )

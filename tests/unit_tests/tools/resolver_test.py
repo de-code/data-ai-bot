@@ -1,5 +1,12 @@
 # pylint: disable=duplicate-code
+from typing import Iterator
+from unittest.mock import MagicMock, patch
+
 import pytest
+
+from smolagents import (  # type: ignore[import-untyped]
+    ToolCollection
+)
 
 from data_ai_bot.config import (
     FromMcpConfig,
@@ -50,6 +57,19 @@ DEFAULT_CONFIG_TOOL_RESOLVER = ConfigToolResolver(
     tool_definitions_config=DEFAULT_TOOL_DEFINITIONS_CONFIG,
     tool_collection_definitions_config=TOOL_COLLECTION_DEFINITIONS_CONFIG_1
 )
+
+
+@pytest.fixture(name='tool_collection_from_mcp_mock', autouse=True)
+def _tool_collection_from_mcp_mock() -> Iterator[MagicMock]:
+    with patch.object(ToolCollection, 'from_mcp') as mock:
+        yield mock
+
+
+@pytest.fixture(name='tool_collection_mock')
+def _tool_collection_mock(
+    tool_collection_from_mcp_mock: MagicMock
+) -> MagicMock:
+    return tool_collection_from_mcp_mock.return_value.__enter__.return_value
 
 
 class TestConfigToolResolver:
@@ -120,3 +140,24 @@ class TestConfigToolResolver:
         assert isinstance(tool, DocMapTool)
         assert tool.name == 'new_name'
         assert tool.description == 'New description'
+
+    def test_should_load_tools_from_collection(
+        self,
+        tool_collection_from_mcp_mock: MagicMock,
+        tool_collection_mock: MagicMock
+    ):
+        resolver = ConfigToolResolver(
+            headers=DEFAULT_HEADERS,
+            tool_collection_definitions_config=ToolCollectionDefinitionsConfig(
+                from_mcp=[FROM_MCP_CONFIG_1]
+            )
+        )
+        tools = resolver.get_tools_by_collection_name(FROM_MCP_CONFIG_1.name)
+        assert tools == tool_collection_mock.tools
+        tool_collection_from_mcp_mock.assert_called_once_with(
+            {
+                'url': FROM_MCP_CONFIG_1.url,
+                'transport': FROM_MCP_CONFIG_1.transport
+            },
+            trust_remote_code=True
+        )
