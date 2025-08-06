@@ -113,7 +113,9 @@ def get_tool_from_python_tool_class(
 
 @dataclass(frozen=True)
 class ConfigToolResolver(ToolResolver):
-    tool_definitions_config: ToolDefinitionsConfig
+    tool_definitions_config: ToolDefinitionsConfig = (
+        ToolDefinitionsConfig()
+    )
     tool_collection_definitions_config: ToolCollectionDefinitionsConfig = (
         ToolCollectionDefinitionsConfig(from_mcp=[])
     )
@@ -157,7 +159,14 @@ class ConfigToolResolver(ToolResolver):
             'transport': from_mcp_config.transport
         }, trust_remote_code=True)
         tool_collection = self.exit_stack.enter_context(tool_collection_cm)
-        return tool_collection.tools
+        tools: Sequence[Tool] = tool_collection.tools
+        if from_mcp_config.tools:
+            tools = [
+                tool
+                for tool in tools
+                if tool.name in from_mcp_config.tools
+            ]
+        return tools
 
     def get_tools_by_collection_name(self, tool_collection_name: str) -> Sequence[Tool]:
         for from_mcp in (

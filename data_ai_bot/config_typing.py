@@ -25,6 +25,7 @@ class FromMcpConfigDict(TypedDict):
     name: str
     url: str
     transport: NotRequired[str]
+    tools: NotRequired[Sequence[str]]
 
 
 class ToolCollectionDefinitionsConfigDict(TypedDict):

@@ -95,6 +95,7 @@ class FromMcpConfig:
     name: str
     url: str
     transport: str
+    tools: Sequence[str] = field(default_factory=list)
 
     @staticmethod
     def from_dict(
@@ -103,7 +104,8 @@ class FromMcpConfig:
         return FromMcpConfig(
             name=from_mcp_config_dict['name'],
             url=from_mcp_config_dict['url'],
-            transport=from_mcp_config_dict.get('transport', 'streamable-http')
+            transport=from_mcp_config_dict.get('transport', 'streamable-http'),
+            tools=from_mcp_config_dict.get('tools', [])
         )
 
 
