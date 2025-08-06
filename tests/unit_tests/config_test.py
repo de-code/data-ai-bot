@@ -143,6 +143,13 @@ class TestFromMcpConfig:
         assert mcp_config.name == FROM_MCP_CONFIG_DICT_1['name']
         assert mcp_config.url == FROM_MCP_CONFIG_DICT_1['url']
 
+    def test_should_load_mcp_config_with_tool_selection(self):
+        mcp_config = FromMcpConfig.from_dict({
+            **FROM_MCP_CONFIG_DICT_1,
+            'tools': ['tool_1']
+        })
+        assert mcp_config.tools == ['tool_1']
+
 
 class TestToolCollectionDefinitionsConfig:
     def test_should_be_falsy_if_empty(self):
