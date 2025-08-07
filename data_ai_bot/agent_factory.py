@@ -164,5 +164,6 @@ class SmolAgentsManagedAgentFactory(SmolAgentsAgentFactory):
 
 def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
     agent = agent_factory()
-    LOGGER.info('System Prompt:\n```text\n%s\n```', agent.system_prompt)
+    agent_name = agent.name or '__main__'
+    LOGGER.info(f'System Prompt (Agent: {agent_name}):\n```text\n%s\n```', agent.system_prompt)
     assert agent is not None
