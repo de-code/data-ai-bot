@@ -36,7 +36,7 @@ class BaseAgentConfigDict(TypedDict):
     tools: NotRequired[Sequence[str]]
     toolCollections: NotRequired[Sequence[str]]
     systemPrompt: NotRequired[str]
-    managedAgents: NotRequired[str]
+    managedAgents: NotRequired[Sequence[str]]
 
 
 class _ManagedAgentExtraConfigDict(TypedDict):
