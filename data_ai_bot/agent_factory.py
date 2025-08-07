@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import wraps
 import logging
 import traceback
@@ -109,21 +109,34 @@ def get_wrapped_smolagents_tools(
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SmolAgentsAgentFactory:
     model: smolagents.Model
     tools: Sequence[Tool]
+    managed_agent_factories: Sequence['SmolAgentsManagedAgentFactory'] = field(
+        default_factory=list
+    )
     system_prompt: str | None = None
+    name: str | None = None
+    description: str | None = None
 
     def __call__(
         self,
         tool_call_event_handler: ToolCallEventHandler | None = None
     ) -> smolagents.MultiStepAgent:
         agent = smolagents.ToolCallingAgent(
+            name=self.name,
+            description=self.description,
             tools=get_wrapped_smolagents_tools(
                 self.tools,
                 tool_call_event_handler=tool_call_event_handler
             ),
+            managed_agents=[
+                managed_agent_factory(
+                    tool_call_event_handler=tool_call_event_handler
+                )
+                for managed_agent_factory in self.managed_agent_factories
+            ],
             model=self.model,
             step_callbacks=[do_step_callback],
             max_steps=3
@@ -135,6 +148,18 @@ class SmolAgentsAgentFactory:
                 + self.system_prompt
             )
         return agent
+
+
+@dataclass(frozen=True, kw_only=True)
+class SmolAgentsManagedAgentFactory(SmolAgentsAgentFactory):
+    name: str
+    description: str
+
+    def __post_init__(self):
+        if self.name is None:
+            raise TypeError('`name` required')
+        if self.description is None:
+            raise TypeError('`description` required')
 
 
 def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
