@@ -6,6 +6,8 @@ import smolagents  # type: ignore
 
 import data_ai_bot.agent_factory as agent_factory_module
 from data_ai_bot.agent_factory import (
+    SmolAgentsAgentFactory,
+    SmolAgentsManagedAgentFactory,
     ToolCall,
     ToolCallEvent,
     get_chained_tool_call_event_handlers,
@@ -193,3 +195,61 @@ class TestGetChainedToolCallEventHandlers:
         chained_handlers(TOOL_CALL_EVENT_1)
         for handler in handlers:
             handler.assert_called_with(TOOL_CALL_EVENT_1)
+
+
+class TestSmolAgentsAgentFactory:
+    def test_should_create_simple_tool_agent(
+        self,
+        test_tool: TestTool
+    ):
+        agent_factory = SmolAgentsAgentFactory(
+            model=MagicMock(name='model'),
+            tools=[test_tool]
+        )
+        agent = agent_factory()
+        assert agent is not None
+        assert isinstance(agent, smolagents.ToolCallingAgent)
+        assert agent.model == agent_factory.model
+        assert agent.tools
+
+    def test_should_create_agent_with_managed_agents(
+        self,
+        test_tool: TestTool
+    ):
+        managed_agent = MagicMock(name='managed_agent_1')
+        managed_agent.name = 'managed_agent_1'
+        managed_agent_factory = MagicMock(name='managed_agent_factory_1')
+        managed_agent_factory.return_value = managed_agent
+        tool_call_event_handler = MagicMock(name='tool_call_event_handler')
+        agent_factory = SmolAgentsAgentFactory(
+            model=MagicMock(name='model'),
+            tools=[test_tool],
+            managed_agent_factories=[managed_agent_factory]
+        )
+        agent = agent_factory(
+            tool_call_event_handler=tool_call_event_handler
+        )
+        assert agent.managed_agents == {
+            'managed_agent_1': managed_agent
+        }
+        managed_agent_factory.assert_called_once_with(
+            tool_call_event_handler=tool_call_event_handler
+        )
+
+
+class TestSmolAgentsManagedAgentFactory:
+    def test_should_create_simple_managed_tool_agent(
+        self,
+        test_tool: TestTool
+    ):
+        agent_factory = SmolAgentsManagedAgentFactory(
+            name='managed_agent_1',
+            description='Managed Agent 1',
+            model=MagicMock(name='model'),
+            tools=[test_tool]
+        )
+        agent = agent_factory()
+        assert agent is not None
+        assert isinstance(agent, smolagents.ToolCallingAgent)
+        assert agent.name == 'managed_agent_1'
+        assert agent.description == 'Managed Agent 1'
