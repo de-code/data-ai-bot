@@ -134,13 +134,15 @@ class BaseAgentConfig:
     tools: Sequence[str]
     tool_collections: Sequence[str]
     system_prompt: Optional[str] = None
+    managed_agent_names: Sequence[str] = field(default_factory=list)
 
     @staticmethod
     def from_dict(agent_config_dict: BaseAgentConfigDict) -> 'BaseAgentConfig':
         return BaseAgentConfig(
             tools=agent_config_dict.get('tools', []),
             tool_collections=agent_config_dict.get('toolCollections', []),
-            system_prompt=agent_config_dict.get('systemPrompt')
+            system_prompt=agent_config_dict.get('systemPrompt'),
+            managed_agent_names=agent_config_dict.get('managedAgents', [])
         )
 
 

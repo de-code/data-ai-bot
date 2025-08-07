@@ -201,6 +201,13 @@ class TestBaseAgentConfig:
         })
         assert agent_config.system_prompt == 'System prompt 1'
 
+    def test_should_load_managed_agent_names(self):
+        agent_config = BaseAgentConfig.from_dict({
+            **BASE_AGENT_CONFIG_DICT_1,
+            'managedAgents': ['managed_agent_1']
+        })
+        assert agent_config.managed_agent_names == ['managed_agent_1']
+
 
 class TestManagedAgentConfig:
     def test_should_load_name_and_description(self):
