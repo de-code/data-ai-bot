@@ -189,7 +189,7 @@ def get_main_agent_factory_for_config(
     tool_resolver: ConfigToolResolver,
     model: smolagents.Model,
     app_config: AppConfig
-) -> SmolAgentsManagedAgentFactory:
+) -> SmolAgentsAgentFactory:
     tools = tool_resolver.get_tools_by_name(
         tool_names=agent_config.tools,
         tool_collection_names=agent_config.tool_collections
