@@ -33,7 +33,7 @@ class ToolCollectionDefinitionsConfigDict(TypedDict):
 
 
 class BaseAgentConfigDict(TypedDict):
-    tools: Sequence[str]
+    tools: NotRequired[Sequence[str]]
     toolCollections: NotRequired[Sequence[str]]
     systemPrompt: NotRequired[str]
 

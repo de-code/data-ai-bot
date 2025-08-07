@@ -59,14 +59,12 @@ TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1: ToolCollectionDefinitionsConfigDict =
 }
 
 BASE_AGENT_CONFIG_DICT_1: BaseAgentConfigDict = {
-    'tools': ['tool_1', 'tool_2']
 }
 
 
 MANAGED_AGENT_CONFIG_DICT_1: ManagedAgentConfigDict = {
     'name': 'managed_agent_1',
-    'description': 'Managed Agent 1',
-    'tools': ['tool_1', 'tool_2']
+    'description': 'Managed Agent 1'
 }
 
 
@@ -182,8 +180,12 @@ class TestToolCollectionDefinitionsConfig:
 
 class TestBaseAgentConfig:
     def test_should_load_tools(self):
-        agent_config = BaseAgentConfig.from_dict(BASE_AGENT_CONFIG_DICT_1)
-        assert agent_config.tools == BASE_AGENT_CONFIG_DICT_1['tools']
+        tools = ['tool_1', 'tool_2']
+        agent_config = BaseAgentConfig.from_dict({
+            **BASE_AGENT_CONFIG_DICT_1,
+            'tools': tools
+        })
+        assert agent_config.tools == tools
 
     def test_should_load_tool_collectionss(self):
         agent_config = BaseAgentConfig.from_dict({
@@ -207,8 +209,12 @@ class TestManagedAgentConfig:
         assert agent_config.description == MANAGED_AGENT_CONFIG_DICT_1['description']
 
     def test_should_load_tools(self):
-        agent_config = ManagedAgentConfig.from_dict(MANAGED_AGENT_CONFIG_DICT_1)
-        assert agent_config.tools == MANAGED_AGENT_CONFIG_DICT_1['tools']
+        tools = ['tool_1', 'tool_2']
+        agent_config = ManagedAgentConfig.from_dict({
+            **MANAGED_AGENT_CONFIG_DICT_1,
+            'tools': tools
+        })
+        assert agent_config.tools == tools
 
 
 class TestAppConfig:

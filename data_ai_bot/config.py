@@ -138,7 +138,7 @@ class BaseAgentConfig:
     @staticmethod
     def from_dict(agent_config_dict: BaseAgentConfigDict) -> 'BaseAgentConfig':
         return BaseAgentConfig(
-            tools=agent_config_dict['tools'],
+            tools=agent_config_dict.get('tools', []),
             tool_collections=agent_config_dict.get('toolCollections', []),
             system_prompt=agent_config_dict.get('systemPrompt')
         )
