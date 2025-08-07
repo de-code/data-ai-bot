@@ -6,11 +6,12 @@ from typing import Any, Mapping, Optional, Sequence
 import yaml
 
 from data_ai_bot.config_typing import (
-    AgentConfigDict,
     AppConfigDict,
+    BaseAgentConfigDict,
     FromMcpConfigDict,
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
+    ManagedAgentConfigDict,
     ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
@@ -129,17 +130,36 @@ class ToolCollectionDefinitionsConfig:
 
 
 @dataclass(frozen=True)
-class AgentConfig:
+class BaseAgentConfig:
     tools: Sequence[str]
     tool_collections: Sequence[str]
     system_prompt: Optional[str] = None
 
     @staticmethod
-    def from_dict(agent_config_dict: AgentConfigDict) -> 'AgentConfig':
-        return AgentConfig(
+    def from_dict(agent_config_dict: BaseAgentConfigDict) -> 'BaseAgentConfig':
+        return BaseAgentConfig(
             tools=agent_config_dict['tools'],
             tool_collections=agent_config_dict.get('toolCollections', []),
             system_prompt=agent_config_dict.get('systemPrompt')
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ManagedAgentConfig(BaseAgentConfig):
+    name: str
+    description: str
+
+    @staticmethod
+    def from_dict(
+        agent_config_dict: ManagedAgentConfigDict  # type: ignore[override]
+    ) -> 'ManagedAgentConfig':
+        base_agent_config = BaseAgentConfig.from_dict(agent_config_dict)
+        return ManagedAgentConfig(
+            name=agent_config_dict['name'],
+            description=agent_config_dict['description'],
+            tools=base_agent_config.tools,
+            tool_collections=base_agent_config.tool_collections,
+            system_prompt=base_agent_config.system_prompt
         )
 
 
@@ -147,7 +167,8 @@ class AgentConfig:
 class AppConfig:
     tool_definitions: ToolDefinitionsConfig
     tool_collection_definitions: ToolCollectionDefinitionsConfig
-    agent: AgentConfig
+    agent: BaseAgentConfig
+    managed_agents: Sequence[ManagedAgentConfig]
 
     @staticmethod
     def from_dict(app_config_dict: AppConfigDict) -> 'AppConfig':
@@ -158,7 +179,11 @@ class AppConfig:
             tool_collection_definitions=ToolCollectionDefinitionsConfig.from_dict(
                 app_config_dict.get('toolCollectionDefinitions', {})
             ),
-            agent=AgentConfig.from_dict(app_config_dict['agent'])
+            agent=BaseAgentConfig.from_dict(app_config_dict['agent']),
+            managed_agents=list(map(
+                ManagedAgentConfig.from_dict,
+                app_config_dict.get('managedAgents', [])
+            ))
         )
 
 

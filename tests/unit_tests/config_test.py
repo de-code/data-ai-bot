@@ -3,22 +3,24 @@ from pathlib import Path
 import yaml
 
 from data_ai_bot.config import (
-    AgentConfig,
+    BaseAgentConfig,
     AppConfig,
     EnvironmentVariables,
     FromMcpConfig,
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
+    ManagedAgentConfig,
     ToolCollectionDefinitionsConfig,
     ToolDefinitionsConfig,
     load_app_config
 )
 from data_ai_bot.config_typing import (
-    AgentConfigDict,
     AppConfigDict,
+    BaseAgentConfigDict,
     FromMcpConfigDict,
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
+    ManagedAgentConfigDict,
     ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
@@ -56,13 +58,20 @@ TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1: ToolCollectionDefinitionsConfigDict =
     ]
 }
 
-AGENT_CONFIG_DICT_1: AgentConfigDict = {
+BASE_AGENT_CONFIG_DICT_1: BaseAgentConfigDict = {
+    'tools': ['tool_1', 'tool_2']
+}
+
+
+MANAGED_AGENT_CONFIG_DICT_1: ManagedAgentConfigDict = {
+    'name': 'managed_agent_1',
+    'description': 'Managed Agent 1',
     'tools': ['tool_1', 'tool_2']
 }
 
 
 APP_CONFIG_DICT_1: AppConfigDict = {
-    'agent': AGENT_CONFIG_DICT_1
+    'agent': BASE_AGENT_CONFIG_DICT_1
 }
 
 
@@ -171,30 +180,50 @@ class TestToolCollectionDefinitionsConfig:
         assert bool(tool_config) is True
 
 
-class TestAgentConfig:
+class TestBaseAgentConfig:
     def test_should_load_tools(self):
-        agent_config = AgentConfig.from_dict(AGENT_CONFIG_DICT_1)
-        assert agent_config.tools == AGENT_CONFIG_DICT_1['tools']
+        agent_config = BaseAgentConfig.from_dict(BASE_AGENT_CONFIG_DICT_1)
+        assert agent_config.tools == BASE_AGENT_CONFIG_DICT_1['tools']
 
     def test_should_load_tool_collectionss(self):
-        agent_config = AgentConfig.from_dict({
-            **AGENT_CONFIG_DICT_1,
+        agent_config = BaseAgentConfig.from_dict({
+            **BASE_AGENT_CONFIG_DICT_1,
             'toolCollections': ['tool_collection_1']
         })
         assert agent_config.tool_collections == ['tool_collection_1']
 
     def test_should_load_system_prompt(self):
-        agent_config = AgentConfig.from_dict({
-            **AGENT_CONFIG_DICT_1,
+        agent_config = BaseAgentConfig.from_dict({
+            **BASE_AGENT_CONFIG_DICT_1,
             'systemPrompt': 'System prompt 1'
         })
         assert agent_config.system_prompt == 'System prompt 1'
 
 
+class TestManagedAgentConfig:
+    def test_should_load_name_and_description(self):
+        agent_config = ManagedAgentConfig.from_dict(MANAGED_AGENT_CONFIG_DICT_1)
+        assert agent_config.name == MANAGED_AGENT_CONFIG_DICT_1['name']
+        assert agent_config.description == MANAGED_AGENT_CONFIG_DICT_1['description']
+
+    def test_should_load_tools(self):
+        agent_config = ManagedAgentConfig.from_dict(MANAGED_AGENT_CONFIG_DICT_1)
+        assert agent_config.tools == MANAGED_AGENT_CONFIG_DICT_1['tools']
+
+
 class TestAppConfig:
     def test_should_load_agent(self):
         app_config = AppConfig.from_dict(APP_CONFIG_DICT_1)
-        assert app_config.agent == AgentConfig.from_dict(APP_CONFIG_DICT_1['agent'])
+        assert app_config.agent == BaseAgentConfig.from_dict(APP_CONFIG_DICT_1['agent'])
+
+    def test_should_load_managed_agents(self):
+        app_config = AppConfig.from_dict({
+            **APP_CONFIG_DICT_1,
+            'managedAgents': [MANAGED_AGENT_CONFIG_DICT_1]
+        })
+        assert app_config.managed_agents == [ManagedAgentConfig.from_dict(
+            MANAGED_AGENT_CONFIG_DICT_1
+        )]
 
     def test_should_load_tool_definitions(self):
         app_config = AppConfig.from_dict({
