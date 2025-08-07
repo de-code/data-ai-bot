@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Sequence
 
 import slack_bolt
 from slack_bolt.adapter.socket_mode import SocketModeHandler
@@ -10,11 +10,18 @@ from cachetools import TTLCache  # type: ignore
 
 import smolagents  # type: ignore
 
-from data_ai_bot.agent_factory import SmolAgentsAgentFactory, check_agent_factory
+from data_ai_bot.agent_factory import (
+    SmolAgentsAgentFactory,
+    SmolAgentsManagedAgentFactory,
+    check_agent_factory
+)
 from data_ai_bot.app import SlackChatApp
 from data_ai_bot.config import (
+    AppConfig,
+    BaseAgentConfig,
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
+    ManagedAgentConfig,
     ToolDefinitionsConfig,
     load_app_config
 )
@@ -124,6 +131,84 @@ def create_bolt_app(
     return app
 
 
+def get_managed_agent_factory_for_config(
+    managed_agent_config: ManagedAgentConfig,
+    tool_resolver: ConfigToolResolver,
+    model: smolagents.Model
+) -> SmolAgentsManagedAgentFactory:
+    tools = tool_resolver.get_tools_by_name(
+        tool_names=managed_agent_config.tools,
+        tool_collection_names=managed_agent_config.tool_collections
+    )
+    LOGGER.info('Tools (Managed Agent: %s): %r', managed_agent_config.name, tools)
+    return SmolAgentsManagedAgentFactory(
+        name=managed_agent_config.name,
+        description=managed_agent_config.description,
+        model=model,
+        tools=tools,
+        system_prompt=managed_agent_config.system_prompt
+    )
+
+
+def get_managed_agent_factory_by_name(
+    name: str,
+    tool_resolver: ConfigToolResolver,
+    model: smolagents.Model,
+    app_config: AppConfig
+) -> SmolAgentsManagedAgentFactory:
+    for managed_agent_config in app_config.managed_agents:
+        if managed_agent_config.name != name:
+            continue
+        return get_managed_agent_factory_for_config(
+            managed_agent_config=managed_agent_config,
+            tool_resolver=tool_resolver,
+            model=model
+        )
+    raise ValueError(f'No managed agent config found for: {repr(name)}')
+
+
+def get_managed_agent_factories(
+    managed_agent_names: Sequence[str],
+    tool_resolver: ConfigToolResolver,
+    model: smolagents.Model,
+    app_config: AppConfig
+) -> Sequence[SmolAgentsManagedAgentFactory]:
+    return [
+        get_managed_agent_factory_by_name(
+            name=name,
+            tool_resolver=tool_resolver,
+            model=model,
+            app_config=app_config
+        )
+        for name in managed_agent_names
+    ]
+
+
+def get_main_agent_factory_for_config(
+    agent_config: BaseAgentConfig,
+    tool_resolver: ConfigToolResolver,
+    model: smolagents.Model,
+    app_config: AppConfig
+) -> SmolAgentsManagedAgentFactory:
+    tools = tool_resolver.get_tools_by_name(
+        tool_names=agent_config.tools,
+        tool_collection_names=agent_config.tool_collections
+    )
+    LOGGER.info('Tools (Main Agent): %r', tools)
+    LOGGER.info('Managed Agents (Main Agent): %r', agent_config.managed_agent_names)
+    return SmolAgentsAgentFactory(
+        model=model,
+        tools=tools,
+        system_prompt=agent_config.system_prompt,
+        managed_agent_factories=get_managed_agent_factories(
+            managed_agent_names=agent_config.managed_agent_names,
+            tool_resolver=tool_resolver,
+            model=model,
+            app_config=app_config
+        )
+    )
+
+
 def main():
     LOGGER.info('Initializing...')
     app_config = load_app_config()
@@ -147,15 +232,11 @@ def main():
         ),
         headers=headers
     ) as tool_resolver:
-        tools = tool_resolver.get_tools_by_name(
-            app_config.agent.tools,
-            tool_collection_names=app_config.agent.tool_collections
-        )
-        LOGGER.info('Tools: %r', tools)
-        agent_factory = SmolAgentsAgentFactory(
+        agent_factory = get_main_agent_factory_for_config(
+            agent_config=app_config.agent,
+            tool_resolver=tool_resolver,
             model=model,
-            tools=tools,
-            system_prompt=app_config.agent.system_prompt
+            app_config=app_config
         )
         app = create_bolt_app(
             agent_factory=agent_factory
