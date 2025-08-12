@@ -124,23 +124,38 @@ class SmolAgentsAgentFactory:
         self,
         tool_call_event_handler: ToolCallEventHandler | None = None
     ) -> smolagents.MultiStepAgent:
-        agent = smolagents.ToolCallingAgent(
-            name=self.name,
-            description=self.description,
-            tools=get_wrapped_smolagents_tools(
-                self.tools,
-                tool_call_event_handler=tool_call_event_handler
-            ),
-            managed_agents=[
-                managed_agent_factory(
-                    tool_call_event_handler=tool_call_event_handler
-                )
-                for managed_agent_factory in self.managed_agent_factories
-            ],
-            model=self.model,
-            step_callbacks=[do_step_callback],
-            max_steps=3
+        tools: Sequence[Tool] = get_wrapped_smolagents_tools(
+            self.tools,
+            tool_call_event_handler=tool_call_event_handler
         )
+        managed_agents: Sequence[smolagents.MultiStepAgent] = [
+            managed_agent_factory(
+                tool_call_event_handler=tool_call_event_handler
+            )
+            for managed_agent_factory in self.managed_agent_factories
+        ]
+        if managed_agents:
+            LOGGER.info('Using CodeAgent (name=%r)', self.name)
+            agent = smolagents.CodeAgent(
+                name=self.name,
+                description=self.description,
+                tools=tools,
+                managed_agents=managed_agents,
+                model=self.model,
+                step_callbacks=[do_step_callback],
+                max_steps=3
+            )
+        else:
+            LOGGER.info('Using ToolCallingAgent (name=%r)', self.name)
+            agent = smolagents.ToolCallingAgent(
+                name=self.name,
+                description=self.description,
+                tools=tools,
+                managed_agents=managed_agents,
+                model=self.model,
+                step_callbacks=[do_step_callback],
+                max_steps=3
+            )
         if self.system_prompt:
             agent.prompt_templates['system_prompt'] = (
                 agent.prompt_templates['system_prompt']

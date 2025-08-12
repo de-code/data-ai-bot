@@ -212,7 +212,7 @@ class TestSmolAgentsAgentFactory:
         assert agent.model == agent_factory.model
         assert agent.tools
 
-    def test_should_create_agent_with_managed_agents(
+    def test_should_create_agent_with_managed_agents_using_code_agent(
         self,
         test_tool: TestTool
     ):
@@ -229,6 +229,7 @@ class TestSmolAgentsAgentFactory:
         agent = agent_factory(
             tool_call_event_handler=tool_call_event_handler
         )
+        assert isinstance(agent, smolagents.CodeAgent)
         assert agent.managed_agents == {
             'managed_agent_1': managed_agent
         }
