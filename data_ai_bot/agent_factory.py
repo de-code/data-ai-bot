@@ -1,5 +1,5 @@
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import wraps
 import logging
 import traceback
@@ -109,25 +109,53 @@ def get_wrapped_smolagents_tools(
     ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class SmolAgentsAgentFactory:
     model: smolagents.Model
     tools: Sequence[Tool]
+    managed_agent_factories: Sequence['SmolAgentsManagedAgentFactory'] = field(
+        default_factory=list
+    )
     system_prompt: str | None = None
+    name: str | None = None
+    description: str | None = None
 
     def __call__(
         self,
         tool_call_event_handler: ToolCallEventHandler | None = None
     ) -> smolagents.MultiStepAgent:
-        agent = smolagents.ToolCallingAgent(
-            tools=get_wrapped_smolagents_tools(
-                self.tools,
-                tool_call_event_handler=tool_call_event_handler
-            ),
-            model=self.model,
-            step_callbacks=[do_step_callback],
-            max_steps=3
+        tools: Sequence[Tool] = get_wrapped_smolagents_tools(
+            self.tools,
+            tool_call_event_handler=tool_call_event_handler
         )
+        managed_agents: Sequence[smolagents.MultiStepAgent] = [
+            managed_agent_factory(
+                tool_call_event_handler=tool_call_event_handler
+            )
+            for managed_agent_factory in self.managed_agent_factories
+        ]
+        if managed_agents:
+            LOGGER.info('Using CodeAgent (name=%r)', self.name)
+            agent = smolagents.CodeAgent(
+                name=self.name,
+                description=self.description,
+                tools=tools,
+                managed_agents=managed_agents,
+                model=self.model,
+                step_callbacks=[do_step_callback],
+                max_steps=3
+            )
+        else:
+            LOGGER.info('Using ToolCallingAgent (name=%r)', self.name)
+            agent = smolagents.ToolCallingAgent(
+                name=self.name,
+                description=self.description,
+                tools=tools,
+                managed_agents=managed_agents,
+                model=self.model,
+                step_callbacks=[do_step_callback],
+                max_steps=3
+            )
         if self.system_prompt:
             agent.prompt_templates['system_prompt'] = (
                 agent.prompt_templates['system_prompt']
@@ -137,7 +165,20 @@ class SmolAgentsAgentFactory:
         return agent
 
 
+@dataclass(frozen=True, kw_only=True)
+class SmolAgentsManagedAgentFactory(SmolAgentsAgentFactory):
+    name: str
+    description: str
+
+    def __post_init__(self):
+        if self.name is None:
+            raise TypeError('`name` required')
+        if self.description is None:
+            raise TypeError('`description` required')
+
+
 def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
     agent = agent_factory()
-    LOGGER.info('System Prompt: %r', agent.system_prompt)
+    agent_name = agent.name or '__main__'
+    LOGGER.info(f'System Prompt (Agent: {agent_name}):\n```text\n%s\n```', agent.system_prompt)
     assert agent is not None

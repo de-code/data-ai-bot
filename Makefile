@@ -74,7 +74,7 @@ dev-start:
 	CONFIG_FILE=config/agent.yaml \
 		$(PYTHON) -m data_ai_bot
 
-dev-start:
+dev-start-local-config:
 	CONFIG_FILE=config/local-agent.yaml \
 		$(PYTHON) -m data_ai_bot
 

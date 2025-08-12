@@ -32,13 +32,24 @@ class ToolCollectionDefinitionsConfigDict(TypedDict):
     fromMcp: NotRequired[Sequence[FromMcpConfigDict]]
 
 
-class AgentConfigDict(TypedDict):
-    tools: Sequence[str]
+class BaseAgentConfigDict(TypedDict):
+    tools: NotRequired[Sequence[str]]
     toolCollections: NotRequired[Sequence[str]]
     systemPrompt: NotRequired[str]
+    managedAgents: NotRequired[Sequence[str]]
+
+
+class _ManagedAgentExtraConfigDict(TypedDict):
+    name: str
+    description: str
+
+
+class ManagedAgentConfigDict(BaseAgentConfigDict, _ManagedAgentExtraConfigDict):
+    pass
 
 
 class AppConfigDict(TypedDict):
     toolDefinitions: NotRequired[ToolDefinitionsConfigDict]
     toolCollectionDefinitions: NotRequired[ToolCollectionDefinitionsConfigDict]
-    agent: AgentConfigDict
+    managedAgents: NotRequired[Sequence[ManagedAgentConfigDict]]
+    agent: BaseAgentConfigDict
