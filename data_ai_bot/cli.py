@@ -68,14 +68,12 @@ def get_model(
     model_id: str,
     api_base: str,
     api_key: str,
-    temperature: float = 0.0
 ) -> smolagents.Model:
     LOGGER.info('model_id: %r', model_id)
     return smolagents.OpenAIServerModel(
         model_id=model_id,
         api_base=api_base,
-        api_key=api_key,
-        temperature=temperature
+        api_key=api_key
     )
 
 
