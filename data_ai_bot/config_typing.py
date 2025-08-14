@@ -32,11 +32,18 @@ class ToolCollectionDefinitionsConfigDict(TypedDict):
     fromMcp: NotRequired[Sequence[FromMcpConfigDict]]
 
 
+class ModelConfigDict(TypedDict):
+    model_name: str
+    base_url: str
+    api_key: str
+
+
 class BaseAgentConfigDict(TypedDict):
     tools: NotRequired[Sequence[str]]
     toolCollections: NotRequired[Sequence[str]]
     systemPrompt: NotRequired[str]
     managedAgents: NotRequired[Sequence[str]]
+    model: NotRequired[str]
 
 
 class _ManagedAgentExtraConfigDict(TypedDict):
@@ -51,5 +58,6 @@ class ManagedAgentConfigDict(BaseAgentConfigDict, _ManagedAgentExtraConfigDict):
 class AppConfigDict(TypedDict):
     toolDefinitions: NotRequired[ToolDefinitionsConfigDict]
     toolCollectionDefinitions: NotRequired[ToolCollectionDefinitionsConfigDict]
+    models: NotRequired[Sequence[ModelConfigDict]]
     managedAgents: NotRequired[Sequence[ManagedAgentConfigDict]]
     agent: BaseAgentConfigDict
