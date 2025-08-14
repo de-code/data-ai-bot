@@ -211,6 +211,20 @@ class TestModelConfig:
         })
         assert model_config.api_key == 'api_key_1'
 
+    def test_should_read_read_api_key_from_env_file(
+        self,
+        mock_env: dict,
+        tmp_path: Path
+    ):
+        api_key_file_path = tmp_path / 'api_key.txt'
+        api_key_file_path.write_text('api_key_1', encoding='utf-8')
+        mock_env['API_KEY_FILE_PATH'] = str(api_key_file_path)
+        model_config = ModelConfig.from_dict({
+            **MODEL_CONFIG_DICT_1,
+            'api_key': '{{ read_secret_from_env("API_KEY_FILE_PATH") }}'
+        })
+        assert model_config.api_key == 'api_key_1'
+
 
 class TestBaseAgentConfig:
     def test_should_load_tools(self):

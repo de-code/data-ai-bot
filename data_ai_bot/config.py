@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import logging
 import os
+from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
 import jinja2
@@ -26,12 +27,18 @@ class EnvironmentVariables:
     CONFIG_FILE = 'CONFIG_FILE'
 
 
+def read_secret_from_env(var_name: str) -> str:
+    path = os.environ[var_name]
+    return Path(path).read_text(encoding='utf-8')
+
+
 def get_evaluated_template(
     template: str,
     variables: Optional[Mapping[str, Any]] = None
 ) -> Any:
     env = jinja2.Environment()
     env.globals['env'] = dict(os.environ)
+    env.globals['read_secret_from_env'] = read_secret_from_env
     compiled_template = env.from_string(template)
     return compiled_template.render(variables or {})
 
