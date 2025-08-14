@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Any, Mapping, Optional, Sequence
 
+import jinja2
 import yaml
 
 from data_ai_bot.config_typing import (
@@ -23,6 +24,16 @@ LOGGER = logging.getLogger(__name__)
 
 class EnvironmentVariables:
     CONFIG_FILE = 'CONFIG_FILE'
+
+
+def get_evaluated_template(
+    template: str,
+    variables: Optional[Mapping[str, Any]] = None
+) -> Any:
+    env = jinja2.Environment()
+    env.globals['env'] = dict(os.environ)
+    compiled_template = env.from_string(template)
+    return compiled_template.render(variables or {})
 
 
 @dataclass(frozen=True)
@@ -141,7 +152,7 @@ class ModelConfig:
         return ModelConfig(
             model_name=model_config_dict['model_name'],
             base_url=model_config_dict['base_url'],
-            api_key=model_config_dict['api_key']
+            api_key=get_evaluated_template(model_config_dict['api_key'])
         )
 
 

@@ -200,6 +200,17 @@ class TestModelConfig:
         assert MODEL_CONFIG_DICT_1['api_key'] not in str(model_config)
         assert MODEL_CONFIG_DICT_1['api_key'] not in repr(model_config)
 
+    def test_should_read_read_api_key_from_env(
+        self,
+        mock_env: dict
+    ):
+        mock_env['API_KEY'] = 'api_key_1'
+        model_config = ModelConfig.from_dict({
+            **MODEL_CONFIG_DICT_1,
+            'api_key': '{{ env["API_KEY"] }}'
+        })
+        assert model_config.api_key == 'api_key_1'
+
 
 class TestBaseAgentConfig:
     def test_should_load_tools(self):
