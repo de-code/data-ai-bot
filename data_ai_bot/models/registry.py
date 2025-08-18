@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import logging
+import os
 from typing import Sequence
 
 import smolagents  # type: ignore
@@ -10,7 +11,14 @@ from data_ai_bot.config import ModelConfig
 LOGGER = logging.getLogger(__name__)
 
 
-def get_default_model(
+def get_required_env(key: str) -> str:
+    value = os.getenv(key)
+    if not value:
+        raise KeyError(f'Missing environment variable: {key}')
+    return value
+
+
+def get_model(
     model_id: str,
     api_base: str,
     api_key: str,
@@ -20,6 +28,14 @@ def get_default_model(
         model_id=model_id,
         api_base=api_base,
         api_key=api_key
+    )
+
+
+def get_default_model() -> smolagents.Model:
+    return get_model(
+        model_id=get_required_env('OPENAI_MODEL_ID'),
+        api_base=get_required_env('OPENAI_BASE_URL'),
+        api_key=get_required_env('OPENAI_API_KEY')
     )
 
 
@@ -40,3 +56,11 @@ class SmolAgentsModelRegistry:
             api_base=model_config.base_url,
             api_key=model_config.api_key
         )
+
+    def get_model_or_default_model(
+        self,
+        model_name: str | None
+    ) -> smolagents.Model:
+        if not model_name:
+            return get_default_model()
+        return self.get_model(model_name)
