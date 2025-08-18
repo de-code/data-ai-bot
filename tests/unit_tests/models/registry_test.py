@@ -21,9 +21,9 @@ MODEL_CONFIG_1 = ModelConfig(
 )
 
 
-@pytest.fixture(name='get_default_model_mock')
-def _get_default_model_mock() -> Iterator[MagicMock]:
-    with patch.object(registry_model, 'get_default_model') as mock:
+@pytest.fixture(name='get_default_model_config_mock')
+def _get_default_model_config_mock() -> Iterator[MagicMock]:
+    with patch.object(registry_model, 'get_default_model_config') as mock:
         yield mock
 
 
@@ -57,13 +57,27 @@ class TestSmolAgentsModelRegistry:
     class TestGetModelOrDefaultModel:
         def test_should_return_default_model(
             self,
-            get_default_model_mock: MagicMock
+            get_default_model_config_mock: MagicMock
         ):
+            get_default_model_config_mock.return_value = MODEL_CONFIG_1
+            registry = SmolAgentsModelRegistry(
+                model_config_list=[]
+            )
+            model = registry.get_model_or_default_model(None)
+            assert isinstance(model, smolagents.OpenAIServerModel)
+            assert model.model_id == MODEL_CONFIG_1.model_name
+
+        def test_should_return_same_default_model_instance(
+            self,
+            get_default_model_config_mock: MagicMock
+        ):
+            get_default_model_config_mock.return_value = MODEL_CONFIG_1
             registry = SmolAgentsModelRegistry(
                 model_config_list=[MODEL_CONFIG_1]
             )
-            model = registry.get_model_or_default_model(None)
-            assert model == get_default_model_mock.return_value
+            model_1 = registry.get_model_or_default_model(None)
+            model_2 = registry.get_model_or_default_model(None)
+            assert id(model_1) == id(model_2)
 
         def test_should_return_model_by_name(self):
             registry = SmolAgentsModelRegistry(

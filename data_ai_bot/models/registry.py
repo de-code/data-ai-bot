@@ -11,6 +11,9 @@ from data_ai_bot.config import ModelConfig
 LOGGER = logging.getLogger(__name__)
 
 
+DEFAULT_MODEL_NAME = 'default'
+
+
 def get_required_env(key: str) -> str:
     value = os.getenv(key)
     if not value:
@@ -31,11 +34,19 @@ def get_model(
     )
 
 
-def get_default_model() -> smolagents.Model:
-    return get_model(
-        model_id=get_required_env('OPENAI_MODEL_ID'),
-        api_base=get_required_env('OPENAI_BASE_URL'),
+def get_default_model_config() -> ModelConfig:
+    return ModelConfig(
+        model_name=get_required_env('OPENAI_MODEL_ID'),
+        base_url=get_required_env('OPENAI_BASE_URL'),
         api_key=get_required_env('OPENAI_API_KEY')
+    )
+
+
+def get_model_for_config(model_config: ModelConfig) -> smolagents.Model:
+    return get_model(
+        model_id=model_config.model_name,
+        api_base=model_config.base_url,
+        api_key=model_config.api_key
     )
 
 
@@ -48,6 +59,8 @@ class SmolAgentsModelRegistry:
         for model_config in self.model_config_list:
             if model_config.model_name == model_name:
                 return model_config
+        if model_name == DEFAULT_MODEL_NAME:
+            return get_default_model_config()
         raise ValueError(f'invalid model name: {model_name}')
 
     def get_model(self, model_name: str) -> smolagents.Model:
@@ -55,11 +68,7 @@ class SmolAgentsModelRegistry:
         if model_instance is not None:
             return model_instance
         model_config = self.get_model_config(model_name)
-        model_instance = smolagents.OpenAIServerModel(
-            model_id=model_config.model_name,
-            api_base=model_config.base_url,
-            api_key=model_config.api_key
-        )
+        model_instance = get_model_for_config(model_config)
         self.model_instance_by_model_name[model_name] = model_instance
         return model_instance
 
@@ -68,5 +77,5 @@ class SmolAgentsModelRegistry:
         model_name: str | None
     ) -> smolagents.Model:
         if not model_name:
-            return get_default_model()
+            return self.get_model(DEFAULT_MODEL_NAME)
         return self.get_model(model_name)
