@@ -25,6 +25,7 @@ from data_ai_bot.config import (
     ToolDefinitionsConfig,
     load_app_config
 )
+from data_ai_bot.models.registry import SmolAgentsModelRegistry
 from data_ai_bot.slack import (
     get_message_age_in_seconds_from_event_dict
 )
@@ -132,13 +133,19 @@ def create_bolt_app(
 def get_managed_agent_factory_for_config(
     managed_agent_config: ManagedAgentConfig,
     tool_resolver: ConfigToolResolver,
-    model: smolagents.Model
+    model_registry: SmolAgentsModelRegistry,
+    default_model: smolagents.Model
 ) -> SmolAgentsManagedAgentFactory:
+    LOGGER.info('managed_agent_config: %r', managed_agent_config)
     tools = tool_resolver.get_tools_by_name(
         tool_names=managed_agent_config.tools,
         tool_collection_names=managed_agent_config.tool_collections
     )
     LOGGER.info('Tools (Managed Agent: %s): %r', managed_agent_config.name, tools)
+    if managed_agent_config.model_name:
+        model = model_registry.get_model(managed_agent_config.model_name)
+    else:
+        model = default_model
     return SmolAgentsManagedAgentFactory(
         name=managed_agent_config.name,
         description=managed_agent_config.description,
@@ -151,7 +158,8 @@ def get_managed_agent_factory_for_config(
 def get_managed_agent_factory_by_name(
     name: str,
     tool_resolver: ConfigToolResolver,
-    model: smolagents.Model,
+    model_registry: SmolAgentsModelRegistry,
+    default_model: smolagents.Model,
     app_config: AppConfig
 ) -> SmolAgentsManagedAgentFactory:
     for managed_agent_config in app_config.managed_agents:
@@ -160,7 +168,8 @@ def get_managed_agent_factory_by_name(
         return get_managed_agent_factory_for_config(
             managed_agent_config=managed_agent_config,
             tool_resolver=tool_resolver,
-            model=model
+            model_registry=model_registry,
+            default_model=default_model
         )
     raise ValueError(f'No managed agent config found for: {repr(name)}')
 
@@ -168,14 +177,16 @@ def get_managed_agent_factory_by_name(
 def get_managed_agent_factories(
     managed_agent_names: Sequence[str],
     tool_resolver: ConfigToolResolver,
-    model: smolagents.Model,
+    model_registry: SmolAgentsModelRegistry,
+    default_model: smolagents.Model,
     app_config: AppConfig
 ) -> Sequence[SmolAgentsManagedAgentFactory]:
     return [
         get_managed_agent_factory_by_name(
             name=name,
             tool_resolver=tool_resolver,
-            model=model,
+            model_registry=model_registry,
+            default_model=default_model,
             app_config=app_config
         )
         for name in managed_agent_names
@@ -185,13 +196,19 @@ def get_managed_agent_factories(
 def get_main_agent_factory_for_config(
     agent_config: BaseAgentConfig,
     tool_resolver: ConfigToolResolver,
-    model: smolagents.Model,
+    model_registry: SmolAgentsModelRegistry,
+    default_model: smolagents.Model,
     app_config: AppConfig
 ) -> SmolAgentsAgentFactory:
+    LOGGER.info('agent_config: %r', agent_config)
     tools = tool_resolver.get_tools_by_name(
         tool_names=agent_config.tools,
         tool_collection_names=agent_config.tool_collections
     )
+    if agent_config.model_name:
+        model = model_registry.get_model(agent_config.model_name)
+    else:
+        model = default_model
     LOGGER.info('Tools (Main Agent): %r', tools)
     LOGGER.info('Managed Agents (Main Agent): %r', agent_config.managed_agent_names)
     return SmolAgentsAgentFactory(
@@ -201,7 +218,8 @@ def get_main_agent_factory_for_config(
         managed_agent_factories=get_managed_agent_factories(
             managed_agent_names=agent_config.managed_agent_names,
             tool_resolver=tool_resolver,
-            model=model,
+            model_registry=model_registry,
+            default_model=default_model,
             app_config=app_config
         )
     )
@@ -212,10 +230,13 @@ def main():
     app_config = load_app_config()
     LOGGER.info('app_config: %r', app_config)
     configure_otlp_if_enabled(get_optional_env('OTLP_ENDPOINT'))
-    model = get_model(
+    default_model = get_model(
         model_id=get_required_env('OPENAI_MODEL_ID'),
         api_base=get_required_env('OPENAI_BASE_URL'),
         api_key=get_required_env('OPENAI_API_KEY')
+    )
+    model_registry = SmolAgentsModelRegistry(
+        app_config.models
     )
     headers = {
         'User-Agent': get_optional_env('USER_AGENT') or 'Data-AI-Bot/1.0'
@@ -233,7 +254,8 @@ def main():
         agent_factory = get_main_agent_factory_for_config(
             agent_config=app_config.agent,
             tool_resolver=tool_resolver,
-            model=model,
+            model_registry=model_registry,
+            default_model=default_model,
             app_config=app_config
         )
         app = create_bolt_app(
