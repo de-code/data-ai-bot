@@ -27,13 +27,13 @@ def get_default_model(
 class SmolAgentsModelRegistry:
     model_config_list: Sequence[ModelConfig]
 
-    def get_model_config(self, model_name) -> ModelConfig:
+    def get_model_config(self, model_name: str) -> ModelConfig:
         for model_config in self.model_config_list:
             if model_config.model_name == model_name:
                 return model_config
         raise ValueError(f'invalid model name: {model_name}')
 
-    def get_model(self, model_name) -> smolagents.Model:
+    def get_model(self, model_name: str) -> smolagents.Model:
         model_config = self.get_model_config(model_name)
         return smolagents.OpenAIServerModel(
             model_id=model_config.model_name,
