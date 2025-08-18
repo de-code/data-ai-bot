@@ -197,7 +197,8 @@ class ManagedAgentConfig(BaseAgentConfig):
             description=agent_config_dict['description'],
             tools=base_agent_config.tools,
             tool_collections=base_agent_config.tool_collections,
-            system_prompt=base_agent_config.system_prompt
+            system_prompt=base_agent_config.system_prompt,
+            model_name=base_agent_config.model_name
         )
 
 

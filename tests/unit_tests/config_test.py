@@ -278,6 +278,13 @@ class TestManagedAgentConfig:
         })
         assert agent_config.tools == tools
 
+    def test_should_model(self):
+        agent_config = ManagedAgentConfig.from_dict({
+            **MANAGED_AGENT_CONFIG_DICT_1,
+            'model': 'model_1'
+        })
+        assert agent_config.model_name == 'model_1'
+
 
 class TestAppConfig:
     def test_should_load_agent(self):
