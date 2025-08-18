@@ -1,9 +1,26 @@
 from dataclasses import dataclass
+import logging
 from typing import Sequence
 
 import smolagents  # type: ignore
 
 from data_ai_bot.config import ModelConfig
+
+
+LOGGER = logging.getLogger(__name__)
+
+
+def get_default_model(
+    model_id: str,
+    api_base: str,
+    api_key: str,
+) -> smolagents.Model:
+    LOGGER.info('model_id: %r', model_id)
+    return smolagents.OpenAIServerModel(
+        model_id=model_id,
+        api_base=api_base,
+        api_key=api_key
+    )
 
 
 @dataclass(frozen=True)

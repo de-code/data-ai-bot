@@ -26,6 +26,7 @@ from data_ai_bot.config import (
     load_app_config
 )
 from data_ai_bot.models.registry import SmolAgentsModelRegistry
+from data_ai_bot.models.registry import get_default_model
 from data_ai_bot.slack import (
     get_message_age_in_seconds_from_event_dict
 )
@@ -63,19 +64,6 @@ def get_required_env(key: str) -> str:
     if not value:
         raise KeyError(f'Missing environment variable: {key}')
     return value
-
-
-def get_default_model(
-    model_id: str,
-    api_base: str,
-    api_key: str,
-) -> smolagents.Model:
-    LOGGER.info('model_id: %r', model_id)
-    return smolagents.OpenAIServerModel(
-        model_id=model_id,
-        api_base=api_base,
-        api_key=api_key
-    )
 
 
 def create_bolt_app(
