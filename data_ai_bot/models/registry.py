@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import logging
 import os
 from typing import Sequence
@@ -42,6 +42,7 @@ def get_default_model() -> smolagents.Model:
 @dataclass(frozen=True)
 class SmolAgentsModelRegistry:
     model_config_list: Sequence[ModelConfig]
+    model_instance_by_model_name: dict[str, smolagents.Model] = field(default_factory=dict)
 
     def get_model_config(self, model_name: str) -> ModelConfig:
         for model_config in self.model_config_list:
@@ -50,12 +51,17 @@ class SmolAgentsModelRegistry:
         raise ValueError(f'invalid model name: {model_name}')
 
     def get_model(self, model_name: str) -> smolagents.Model:
+        model_instance = self.model_instance_by_model_name.get(model_name)
+        if model_instance is not None:
+            return model_instance
         model_config = self.get_model_config(model_name)
-        return smolagents.OpenAIServerModel(
+        model_instance = smolagents.OpenAIServerModel(
             model_id=model_config.model_name,
             api_base=model_config.base_url,
             api_key=model_config.api_key
         )
+        self.model_instance_by_model_name[model_name] = model_instance
+        return model_instance
 
     def get_model_or_default_model(
         self,

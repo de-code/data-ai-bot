@@ -46,6 +46,14 @@ class TestSmolAgentsModelRegistry:
             assert model.client_kwargs['base_url'] == MODEL_CONFIG_1.base_url
             assert model.client_kwargs['api_key'] == MODEL_CONFIG_1.api_key
 
+        def test_should_return_same_model_instance(self):
+            registry = SmolAgentsModelRegistry(
+                model_config_list=[MODEL_CONFIG_1]
+            )
+            model_1 = registry.get_model(MODEL_CONFIG_1.model_name)
+            model_2 = registry.get_model(MODEL_CONFIG_1.model_name)
+            assert id(model_1) == id(model_2)
+
     class TestGetModelOrDefaultModel:
         def test_should_return_default_model(
             self,
