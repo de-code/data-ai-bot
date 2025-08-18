@@ -10,6 +10,7 @@ from data_ai_bot.config import (
     FromPythonToolClassConfig,
     FromPythonToolInstanceConfig,
     ManagedAgentConfig,
+    ModelConfig,
     ToolCollectionDefinitionsConfig,
     ToolDefinitionsConfig,
     load_app_config
@@ -21,6 +22,7 @@ from data_ai_bot.config_typing import (
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
     ManagedAgentConfigDict,
+    ModelConfigDict,
     ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
@@ -57,6 +59,14 @@ TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1: ToolCollectionDefinitionsConfigDict =
         FROM_MCP_CONFIG_DICT_1
     ]
 }
+
+
+MODEL_CONFIG_DICT_1: ModelConfigDict = {
+    'model_name': 'model_1',
+    'base_url': 'base_url_1',
+    'api_key': 'api_key_1'
+}
+
 
 BASE_AGENT_CONFIG_DICT_1: BaseAgentConfigDict = {
 }
@@ -178,6 +188,44 @@ class TestToolCollectionDefinitionsConfig:
         assert bool(tool_config) is True
 
 
+class TestModelConfig:
+    def test_should_load_model_name_and_api_key(self):
+        model_config = ModelConfig.from_dict(MODEL_CONFIG_DICT_1)
+        assert model_config.model_name == MODEL_CONFIG_DICT_1['model_name']
+        assert model_config.base_url == MODEL_CONFIG_DICT_1['base_url']
+        assert model_config.api_key == MODEL_CONFIG_DICT_1['api_key']
+
+    def test_should_not_include_api_key_in_str_or_repr(self):
+        model_config = ModelConfig.from_dict(MODEL_CONFIG_DICT_1)
+        assert MODEL_CONFIG_DICT_1['api_key'] not in str(model_config)
+        assert MODEL_CONFIG_DICT_1['api_key'] not in repr(model_config)
+
+    def test_should_read_read_api_key_from_env(
+        self,
+        mock_env: dict
+    ):
+        mock_env['API_KEY'] = 'api_key_1'
+        model_config = ModelConfig.from_dict({
+            **MODEL_CONFIG_DICT_1,
+            'api_key': '{{ env["API_KEY"] }}'
+        })
+        assert model_config.api_key == 'api_key_1'
+
+    def test_should_read_read_api_key_from_env_file(
+        self,
+        mock_env: dict,
+        tmp_path: Path
+    ):
+        api_key_file_path = tmp_path / 'api_key.txt'
+        api_key_file_path.write_text('api_key_1', encoding='utf-8')
+        mock_env['API_KEY_FILE_PATH'] = str(api_key_file_path)
+        model_config = ModelConfig.from_dict({
+            **MODEL_CONFIG_DICT_1,
+            'api_key': '{{ read_secret_from_env("API_KEY_FILE_PATH") }}'
+        })
+        assert model_config.api_key == 'api_key_1'
+
+
 class TestBaseAgentConfig:
     def test_should_load_tools(self):
         tools = ['tool_1', 'tool_2']
@@ -208,6 +256,13 @@ class TestBaseAgentConfig:
         })
         assert agent_config.managed_agent_names == ['managed_agent_1']
 
+    def test_should_model(self):
+        agent_config = BaseAgentConfig.from_dict({
+            **BASE_AGENT_CONFIG_DICT_1,
+            'model': 'model_1'
+        })
+        assert agent_config.model_name == 'model_1'
+
 
 class TestManagedAgentConfig:
     def test_should_load_name_and_description(self):
@@ -222,6 +277,13 @@ class TestManagedAgentConfig:
             'tools': tools
         })
         assert agent_config.tools == tools
+
+    def test_should_model(self):
+        agent_config = ManagedAgentConfig.from_dict({
+            **MANAGED_AGENT_CONFIG_DICT_1,
+            'model': 'model_1'
+        })
+        assert agent_config.model_name == 'model_1'
 
 
 class TestAppConfig:
@@ -255,6 +317,15 @@ class TestAppConfig:
         assert app_config.tool_collection_definitions == ToolCollectionDefinitionsConfig.from_dict(
             TOOL_COLLECTION_DEFINITIONS_CONFIG_DICT_1
         )
+
+    def test_should_load_models(self):
+        app_config = AppConfig.from_dict({
+            **APP_CONFIG_DICT_1,
+            'models': [MODEL_CONFIG_DICT_1]
+        })
+        assert app_config.models == [ModelConfig.from_dict(
+            MODEL_CONFIG_DICT_1
+        )]
 
 
 class TestLoadAppConfig:

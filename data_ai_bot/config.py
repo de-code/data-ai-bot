@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
 import logging
 import os
+from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence
 
+import jinja2
 import yaml
 
 from data_ai_bot.config_typing import (
@@ -12,6 +14,7 @@ from data_ai_bot.config_typing import (
     FromPythonToolClassConfigDict,
     FromPythonToolInstanceConfigDict,
     ManagedAgentConfigDict,
+    ModelConfigDict,
     ToolCollectionDefinitionsConfigDict,
     ToolDefinitionsConfigDict
 )
@@ -22,6 +25,22 @@ LOGGER = logging.getLogger(__name__)
 
 class EnvironmentVariables:
     CONFIG_FILE = 'CONFIG_FILE'
+
+
+def read_secret_from_env(var_name: str) -> str:
+    path = os.environ[var_name]
+    return Path(path).read_text(encoding='utf-8')
+
+
+def get_evaluated_template(
+    template: str,
+    variables: Optional[Mapping[str, Any]] = None
+) -> Any:
+    env = jinja2.Environment()
+    env.globals['env'] = dict(os.environ)
+    env.globals['read_secret_from_env'] = read_secret_from_env
+    compiled_template = env.from_string(template)
+    return compiled_template.render(variables or {})
 
 
 @dataclass(frozen=True)
@@ -130,11 +149,27 @@ class ToolCollectionDefinitionsConfig:
 
 
 @dataclass(frozen=True)
+class ModelConfig:
+    model_name: str
+    base_url: str
+    api_key: str = field(repr=False)
+
+    @staticmethod
+    def from_dict(model_config_dict: ModelConfigDict) -> 'ModelConfig':
+        return ModelConfig(
+            model_name=model_config_dict['model_name'],
+            base_url=model_config_dict['base_url'],
+            api_key=get_evaluated_template(model_config_dict['api_key'])
+        )
+
+
+@dataclass(frozen=True)
 class BaseAgentConfig:
     tools: Sequence[str]
     tool_collections: Sequence[str]
     system_prompt: Optional[str] = None
     managed_agent_names: Sequence[str] = field(default_factory=list)
+    model_name: Optional[str] = None
 
     @staticmethod
     def from_dict(agent_config_dict: BaseAgentConfigDict) -> 'BaseAgentConfig':
@@ -142,7 +177,8 @@ class BaseAgentConfig:
             tools=agent_config_dict.get('tools', []),
             tool_collections=agent_config_dict.get('toolCollections', []),
             system_prompt=agent_config_dict.get('systemPrompt'),
-            managed_agent_names=agent_config_dict.get('managedAgents', [])
+            managed_agent_names=agent_config_dict.get('managedAgents', []),
+            model_name=agent_config_dict.get('model')
         )
 
 
@@ -161,7 +197,8 @@ class ManagedAgentConfig(BaseAgentConfig):
             description=agent_config_dict['description'],
             tools=base_agent_config.tools,
             tool_collections=base_agent_config.tool_collections,
-            system_prompt=base_agent_config.system_prompt
+            system_prompt=base_agent_config.system_prompt,
+            model_name=base_agent_config.model_name
         )
 
 
@@ -169,6 +206,7 @@ class ManagedAgentConfig(BaseAgentConfig):
 class AppConfig:
     tool_definitions: ToolDefinitionsConfig
     tool_collection_definitions: ToolCollectionDefinitionsConfig
+    models: Sequence[ModelConfig]
     agent: BaseAgentConfig
     managed_agents: Sequence[ManagedAgentConfig]
 
@@ -181,6 +219,10 @@ class AppConfig:
             tool_collection_definitions=ToolCollectionDefinitionsConfig.from_dict(
                 app_config_dict.get('toolCollectionDefinitions', {})
             ),
+            models=list(map(
+                ModelConfig.from_dict,
+                app_config_dict.get('models', [])
+            )),
             agent=BaseAgentConfig.from_dict(app_config_dict['agent']),
             managed_agents=list(map(
                 ManagedAgentConfig.from_dict,

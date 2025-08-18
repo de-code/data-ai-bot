@@ -134,6 +134,7 @@ class SmolAgentsAgentFactory:
             )
             for managed_agent_factory in self.managed_agent_factories
         ]
+        LOGGER.info('Model for agent (name=%r): %r', self.name, self.model.model_id)
         if managed_agents:
             LOGGER.info('Using CodeAgent (name=%r)', self.name)
             agent = smolagents.CodeAgent(
