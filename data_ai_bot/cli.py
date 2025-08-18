@@ -65,7 +65,7 @@ def get_required_env(key: str) -> str:
     return value
 
 
-def get_model(
+def get_default_model(
     model_id: str,
     api_base: str,
     api_key: str,
@@ -230,7 +230,7 @@ def main():
     app_config = load_app_config()
     LOGGER.info('app_config: %r', app_config)
     configure_otlp_if_enabled(get_optional_env('OTLP_ENDPOINT'))
-    default_model = get_model(
+    default_model = get_default_model(
         model_id=get_required_env('OPENAI_MODEL_ID'),
         api_base=get_required_env('OPENAI_BASE_URL'),
         api_key=get_required_env('OPENAI_API_KEY')
