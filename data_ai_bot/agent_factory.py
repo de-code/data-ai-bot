@@ -184,6 +184,8 @@ def log_agent_info(agent: smolagents.MultiStepAgent):
     LOGGER.info('Agent Type (Agent: %r): %r', agent_name, type(agent).__name__)
     tool_names = list(agent.tools.keys())
     LOGGER.info('Agent Tools (Agent: %r): %r', agent_name, tool_names)
+    managed_agent_names = list(agent.managed_agents.keys())
+    LOGGER.info('Agent Managed Agents (Agent: %r): %r', agent_name, managed_agent_names)
     LOGGER.info('System Prompt (Agent: %r):\n```text\n%s\n```', agent_name, agent.system_prompt)
 
 
