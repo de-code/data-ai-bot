@@ -178,8 +178,24 @@ class SmolAgentsManagedAgentFactory(SmolAgentsAgentFactory):
             raise TypeError('`description` required')
 
 
+def log_agent_info(agent: smolagents.MultiStepAgent):
+    LOGGER.info('Agent: %r', agent)
+    agent_name = agent.name or '__main__'
+    LOGGER.info('Agent Type (Agent: %r): %r', agent_name, type(agent).__name__)
+    tool_names = list(agent.tools.keys())
+    LOGGER.info('Agent Tools (Agent: %r): %r', agent_name, tool_names)
+    managed_agent_names = list(agent.managed_agents.keys())
+    LOGGER.info('Agent Managed Agents (Agent: %r): %r', agent_name, managed_agent_names)
+    LOGGER.info('System Prompt (Agent: %r):\n```text\n%s\n```', agent_name, agent.system_prompt)
+
+
+def log_agent_info_recursively(agent: smolagents.MultiStepAgent):
+    log_agent_info(agent)
+    for managed_agent in agent.managed_agents.values():
+        log_agent_info_recursively(managed_agent)
+
+
 def check_agent_factory(agent_factory: Callable[[], smolagents.MultiStepAgent]):
     agent = agent_factory()
-    agent_name = agent.name or '__main__'
-    LOGGER.info(f'System Prompt (Agent: {agent_name}):\n```text\n%s\n```', agent.system_prompt)
     assert agent is not None
+    log_agent_info_recursively(agent)
