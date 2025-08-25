@@ -4,5 +4,5 @@ pylint==3.3.8
 pytest==8.4.1
 pytest-watcher==0.4.3
 mypy==1.17.1
-types-PyYAML==6.0.12.20250809 
+types-PyYAML==6.0.12.20250822 
 types-requests==2.32.4.20250809
