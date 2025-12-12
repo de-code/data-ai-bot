@@ -1,8 +1,8 @@
 cachetools==6.2.2
 google-cloud-bigquery==3.38.0
 markdown-to-mrkdwn==0.2.0
-opentelemetry-exporter-otlp==1.39.0
-opentelemetry-sdk==1.39.0
+opentelemetry-exporter-otlp==1.39.1
+opentelemetry-sdk==1.39.1
 openinference-instrumentation-smolagents==0.1.21
 PyYAML==6.0.3
 requests==2.32.5
