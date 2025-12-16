@@ -1,4 +1,4 @@
-cachetools==6.2.3
+cachetools==6.2.4
 google-cloud-bigquery==3.39.0
 markdown-to-mrkdwn==0.2.0
 opentelemetry-exporter-otlp==1.39.1
