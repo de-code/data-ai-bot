@@ -17,7 +17,10 @@ from data_ai_bot.slack import (
     get_slack_mrkdwn_for_markdown
 )
 from data_ai_bot.utils.dummy_text import DUMMY_TEXT_4K
-from data_ai_bot.utils.text import get_truncated_with_ellipsis
+from data_ai_bot.utils.text import (
+    get_markdown_for_agent_response_message,
+    get_truncated_with_ellipsis
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -129,7 +132,9 @@ class SlackChatAppMessageSession:  # pylint: disable=too-many-instance-attribute
                 f'Hi <@{message_event.user}>! You said: {message_event.text}',
                 thread_ts=message_event.thread_ts
             )
-        response_message = self.get_agent_response_message()
+        response_message = get_markdown_for_agent_response_message(
+            self.get_agent_response_message()
+        )
         LOGGER.info('response_message: %r', response_message)
         response_message_mrkdwn = get_slack_mrkdwn_for_markdown(
             response_message
