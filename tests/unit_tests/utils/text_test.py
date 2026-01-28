@@ -4,10 +4,16 @@ from data_ai_bot.utils.text import get_markdown_for_agent_response_message
 
 
 class TestGetMarkdownForAgentResponseMessage:
+    def test_convert_empty_string_to_text(self):
+        assert get_markdown_for_agent_response_message('') == 'Empty response'
+
     def test_preserve_passed_in_string(self):
         assert get_markdown_for_agent_response_message(
             'text'
         ) == 'text'
+
+    def test_convert_empty_list_of_strings_to_text(self):
+        assert get_markdown_for_agent_response_message([]) == 'Empty list'
 
     def test_convert_list_of_strings_to_markdown_list(self):
         assert get_markdown_for_agent_response_message([

@@ -9,5 +9,8 @@ def get_markdown_for_agent_response_message(
     agent_response_message: Any
 ) -> str:
     if isinstance(agent_response_message, list):
+        if not agent_response_message:
+            return 'Empty list'
         return '\n'.join(f'- {str(item)}' for item in agent_response_message)
-    return str(agent_response_message)
+    text = str(agent_response_message)
+    return text if text else 'Empty response'
