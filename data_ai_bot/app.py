@@ -5,7 +5,7 @@ from typing import Sequence
 import slack_bolt
 from slack_bolt.context.say import Say
 
-from openinference.instrumentation import using_session
+from openinference.instrumentation import using_attributes
 
 from data_ai_bot.agent_factory import SmolAgentsAgentFactory, ToolCall, ToolCallEvent
 from data_ai_bot.agent_session import SmolAgentsAgentSession
@@ -134,7 +134,13 @@ class SlackChatAppMessageSession:  # pylint: disable=too-many-instance-attribute
                 f'Hi <@{message_event.user}>! You said: {message_event.text}',
                 thread_ts=message_event.thread_ts
             )
-        with using_session(f'slack:{message_event.thread_ts}'):
+        with using_attributes(
+            session_id=f'slack:{message_event.thread_ts}',
+            user_id=message_event.user,
+            metadata={
+                'channel': message_event.channel
+            }
+        ):
             response_message = get_markdown_for_agent_response_message(
                 self.get_agent_response_message()
             )
