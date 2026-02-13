@@ -1,5 +1,5 @@
 cachetools==7.0.1
-google-cloud-bigquery==3.40.0
+google-cloud-bigquery==3.40.1
 markdown-to-mrkdwn==0.3.1
 opentelemetry-exporter-otlp==1.39.1
 opentelemetry-sdk==1.39.1
