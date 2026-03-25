@@ -3,7 +3,7 @@ google-cloud-bigquery==3.40.1
 markdown-to-mrkdwn==0.3.2
 opentelemetry-exporter-otlp==1.40.0
 opentelemetry-sdk==1.40.0
-openinference-instrumentation-smolagents==0.1.24
+openinference-instrumentation-smolagents==0.1.25
 PyYAML==6.0.3
 requests==2.32.5
 slack-bolt==1.27.0
