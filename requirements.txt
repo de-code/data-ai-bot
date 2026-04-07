@@ -6,6 +6,6 @@ opentelemetry-sdk==1.40.0
 openinference-instrumentation-smolagents==0.1.25
 PyYAML==6.0.3
 requests==2.33.1
-slack-bolt==1.27.0
+slack-bolt==1.28.0
 slack-sdk==3.41.0
 smolagents[mcp,openai]==1.24.0
