@@ -1,7 +1,7 @@
 arize-phoenix==14.0.0
 flake8==7.3.0
 pylint==4.0.5
-pytest==9.0.2
+pytest==9.0.3
 pytest-watcher==0.6.3
 mypy==1.20.0
 types-PyYAML==6.0.12.20250915 
