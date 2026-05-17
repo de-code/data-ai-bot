@@ -1,0 +1,24 @@
+sources:
+  bq-data-hub:
+    kind: "bigquery"
+    project: "elife-data-pipeline"
+
+tools:
+  get_senior_editors:
+    kind: bigquery-sql
+    source: bq-data-hub
+    statement: |
+      SELECT
+        Name,
+        Keywords,
+        Techniques,
+        Subject_Areas,
+        Research_Interests,
+        Website_URL,
+        Current_Availability,
+        Role_Name
+      FROM `elife-data-pipeline.prod.mv_Editorial_Public_Editor_Profile`
+      WHERE Role_Name = 'Senior Editor'
+    description: |
+      Retrieves a list of senior editors along with their expertise.
+      Returns JSON.
