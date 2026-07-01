@@ -7,5 +7,5 @@ openinference-instrumentation-smolagents==0.1.32
 PyYAML==6.0.3
 requests==2.34.2
 slack-bolt==1.29.0
-slack-sdk==3.42.0
+slack-sdk==3.43.0
 smolagents[mcp,openai]==1.26.0
