@@ -6,6 +6,15 @@ services:
         volumes:
             - ./config/mcp-server.yaml:/config/mcp-server.yaml
 
+    mcp-database-toolbox:
+        image: us-central1-docker.pkg.dev/database-toolbox/toolbox/toolbox:0.4.0
+        volumes:
+            - ./config/mcp-database-toolbox.yaml:/config/mcp-database-toolbox.yaml
+        command: >
+            --address 0.0.0.0
+            --port 5000
+            --tools-file /config/mcp-database-toolbox.yaml
+
     data-ai-bot:
         depends_on:
             - mcp-server
