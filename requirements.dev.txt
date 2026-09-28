@@ -1,5 +1,5 @@
 arize-phoenix==20.16.0
-flake8==7.3.0
+flake8==7.4.1
 pylint==4.0.9
 pytest==9.1.1
 pytest-watcher==0.6.3
